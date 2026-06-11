@@ -10,6 +10,7 @@ from rich.table import Table
 
 from geo_seo_engine.analyzers.page_audit import audit_page as run_page_audit
 from geo_seo_engine.analyzers.sitemap_audit import audit_sitemap as run_sitemap_audit
+from geo_seo_engine.analyzers.robots_audit import audit_robots as run_robots_audit
 
 app = typer.Typer(help="SEO + GEO operational CLI.")
 
@@ -90,6 +91,28 @@ def _render_sitemap_table(result) -> str:
     return _table_to_text(table)
 
 
+def _render_robots_table(result) -> str:
+    table = Table(title="Robots Audit")
+    table.add_column("Field")
+    table.add_column("Value")
+
+    table.add_row("URL", result.url)
+    table.add_row("Final URL", result.final_url)
+    table.add_row("Status", str(result.status_code))
+    table.add_row("Content-Type", result.content_type or "—")
+    table.add_row("Line count", str(result.line_count))
+    table.add_row("User-agents", ", ".join(result.user_agents) if result.user_agents else "—")
+    table.add_row("Allow count", str(result.allow_count))
+    table.add_row("Disallow count", str(result.disallow_count))
+    table.add_row("Sitemaps", " | ".join(result.sitemap_urls) if result.sitemap_urls else "—")
+    table.add_row("Crawl-delay count", str(result.crawl_delay_count))
+    table.add_row("Unknown directives", str(len(result.unknown_directives)))
+    table.add_row("Blocks all", "yes" if result.blocks_all else "no")
+    table.add_row("Issues", ", ".join(result.issues) if result.issues else "none")
+
+    return _table_to_text(table)
+
+
 @app.command("audit-page")
 def audit_page(
     url: str,
@@ -142,6 +165,33 @@ def audit_sitemap(
         return
 
     _write_or_print(_render_sitemap_table(result), output)
+
+
+@app.command("audit-robots")
+def audit_robots(
+    url: str,
+    output_format: Literal["table", "json"] = typer.Option(
+        "table",
+        "--format",
+        "-f",
+        help="Output format: table or json.",
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Write output to a file.",
+    ),
+) -> None:
+    """Audit a robots.txt file."""
+    result = run_robots_audit(url)
+
+    if output_format == "json":
+        rendered = json.dumps(asdict(result), ensure_ascii=False, indent=2)
+        _write_or_print(rendered, output, is_json=True)
+        return
+
+    _write_or_print(_render_robots_table(result), output)
 
 
 if __name__ == "__main__":
