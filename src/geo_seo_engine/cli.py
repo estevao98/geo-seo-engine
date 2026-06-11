@@ -1,5 +1,6 @@
 import json
 from dataclasses import asdict
+from io import StringIO
 from pathlib import Path
 from typing import Literal
 
@@ -8,9 +9,9 @@ from rich.console import Console
 from rich.table import Table
 
 from geo_seo_engine.analyzers.page_audit import audit_page as run_page_audit
+from geo_seo_engine.analyzers.sitemap_audit import audit_sitemap as run_sitemap_audit
 
 app = typer.Typer(help="SEO + GEO operational CLI.")
-console = Console()
 
 
 @app.command()
@@ -21,7 +22,33 @@ def version() -> None:
     typer.echo(__version__)
 
 
-def _render_table(result) -> str:
+def _write_or_print(rendered: str, output: Path | None, is_json: bool = False) -> None:
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(rendered.rstrip() + "\n", encoding="utf-8")
+        typer.echo(f"Output written to {output}")
+        return
+
+    if is_json:
+        typer.echo(rendered)
+        return
+
+    typer.echo(rendered, nl=False)
+
+
+def _table_to_text(table: Table) -> str:
+    buffer = StringIO()
+    capture_console = Console(
+        file=buffer,
+        force_terminal=False,
+        color_system=None,
+        width=100,
+    )
+    capture_console.print(table)
+    return buffer.getvalue()
+
+
+def _render_page_table(result) -> str:
     table = Table(title="Page Audit")
     table.add_column("Field")
     table.add_column("Value")
@@ -39,9 +66,28 @@ def _render_table(result) -> str:
     table.add_row("External links", str(result.external_links))
     table.add_row("Issues", ", ".join(result.issues) if result.issues else "none")
 
-    buffer_console = Console(record=True)
-    buffer_console.print(table)
-    return buffer_console.export_text()
+    return _table_to_text(table)
+
+
+def _render_sitemap_table(result) -> str:
+    table = Table(title="Sitemap Audit")
+    table.add_column("Field")
+    table.add_column("Value")
+
+    table.add_row("URL", result.url)
+    table.add_row("Final URL", result.final_url)
+    table.add_row("Status", str(result.status_code))
+    table.add_row("Content-Type", result.content_type or "—")
+    table.add_row("Sitemap type", result.sitemap_type or "—")
+    table.add_row("URL count", str(result.url_count))
+    table.add_row("Duplicate URLs", str(len(result.duplicate_urls)))
+    table.add_row("Invalid URLs", str(len(result.invalid_urls)))
+    table.add_row("URLs with query", str(len(result.urls_with_query)))
+    table.add_row("Off-domain URLs", str(len(result.off_domain_urls)))
+    table.add_row("Missing lastmod", str(result.missing_lastmod_count))
+    table.add_row("Issues", ", ".join(result.issues) if result.issues else "none")
+
+    return _table_to_text(table)
 
 
 @app.command("audit-page")
@@ -65,20 +111,37 @@ def audit_page(
 
     if output_format == "json":
         rendered = json.dumps(asdict(result), ensure_ascii=False, indent=2)
-    else:
-        rendered = _render_table(result)
-
-    if output:
-        output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(rendered + "\n", encoding="utf-8")
-        typer.echo(f"Output written to {output}")
+        _write_or_print(rendered, output, is_json=True)
         return
+
+    _write_or_print(_render_page_table(result), output)
+
+
+@app.command("audit-sitemap")
+def audit_sitemap(
+    url: str,
+    output_format: Literal["table", "json"] = typer.Option(
+        "table",
+        "--format",
+        "-f",
+        help="Output format: table or json.",
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Write output to a file.",
+    ),
+) -> None:
+    """Audit a sitemap XML or sitemap index."""
+    result = run_sitemap_audit(url)
 
     if output_format == "json":
-        typer.echo(rendered)
+        rendered = json.dumps(asdict(result), ensure_ascii=False, indent=2)
+        _write_or_print(rendered, output, is_json=True)
         return
 
-    console.print(rendered)
+    _write_or_print(_render_sitemap_table(result), output)
 
 
 if __name__ == "__main__":
