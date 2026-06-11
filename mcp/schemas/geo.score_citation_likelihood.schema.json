@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "geo.score_citation_likelihood",
+  "type": "object",
+  "required": [
+    "content",
+    "query"
+  ],
+  "properties": {
+    "content": {
+      "type": "string"
+    },
+    "query": {
+      "type": "string"
+    },
+    "brand_name": {
+      "type": "string"
+    }
+  }
+}

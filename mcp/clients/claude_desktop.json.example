@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "filesystem_geo": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-filesystem",
+        "/home/estevao/Projetos"
+      ]
+    }
+  }
+}

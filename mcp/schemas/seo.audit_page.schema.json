@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "seo.audit_page",
+  "type": "object",
+  "required": [
+    "url"
+  ],
+  "properties": {
+    "url": {
+      "type": "string",
+      "format": "uri"
+    },
+    "render_js": {
+      "type": "boolean",
+      "default": false
+    },
+    "check_schema": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

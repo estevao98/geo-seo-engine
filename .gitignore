@@ -1,0 +1,56 @@
+# env/secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*service-account*.json
+credentials.json
+token.json
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-lock.yaml
+
+# Data / reports sensíveis
+data/raw/
+data/private/
+reports/raw/
+exports/
+*.sqlite
+*.sqlite3
+*.db
+*.duckdb
+
+# Security scanner raw outputs
+gitleaks*.json
+detect-secrets*.json
+semgrep*.json
+bandit*.json
+pip-audit*.json
+trivy*.json
+grype*.json
+zap-report*
+
+# Frappe / infra
+site_config.json
+terraform.tfstate
+terraform.tfstate.*
+
+# OS/editor
+.DS_Store
+Thumbs.db
+*.swp

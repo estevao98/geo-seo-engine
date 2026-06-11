@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "content.generate_brief",
+  "type": "object",
+  "required": [
+    "keyword",
+    "project_config"
+  ],
+  "properties": {
+    "keyword": {
+      "type": "string"
+    },
+    "project_config": {
+      "type": "string"
+    },
+    "funnel_stage": {
+      "type": "string",
+      "enum": [
+        "TOFU",
+        "MOFU",
+        "BOFU"
+      ]
+    },
+    "language": {
+      "type": "string",
+      "default": "pt-BR"
+    }
+  }
+}

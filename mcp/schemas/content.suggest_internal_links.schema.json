@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "content.suggest_internal_links",
+  "type": "object",
+  "required": [
+    "source_path",
+    "content_dir"
+  ],
+  "properties": {
+    "source_path": {
+      "type": "string"
+    },
+    "content_dir": {
+      "type": "string"
+    },
+    "max_links": {
+      "type": "integer",
+      "default": 10
+    }
+  }
+}
