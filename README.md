@@ -77,6 +77,8 @@ Formatos disponíveis hoje:
 
 Exemplo de campos do relatório gerado por `geo audit-site --format markdown`:
 
+Um relatório Markdown versionado e seguro está disponível em [`examples/site-audit-example.md`](examples/site-audit-example.md). Ele usa o domínio público neutro `https://example.com` e não contém dados privados, tokens ou exports reais.
+
 ```markdown
 # Site Audit Report
 
