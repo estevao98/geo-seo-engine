@@ -69,5 +69,66 @@ def test_render_site_markdown_contains_sections():
     assert "`page.missing_meta_description`" in markdown
     assert "Critical issues" in markdown
     assert "**medium** — `page.missing_meta_description`" in markdown
+    expected_next_action = (
+        "| Next action | `Corrigir a rota do sitemap ou publicar um sitemap XML válido "
+        "acessível por HTTP 200.` |"
+    )
+    assert expected_next_action in markdown
     assert "## Recommendations" in markdown
     assert "**Ação:**" in markdown
+
+
+def test_render_site_markdown_shows_no_priority_action_without_issues():
+    result = SiteAuditResult(
+        url="https://example.com",
+        page=PageAuditResult(
+            url="https://example.com",
+            final_url="https://example.com",
+            status_code=200,
+            title="Title",
+            meta_description="Description",
+            h1=["H1"],
+            canonical="https://example.com",
+            meta_robots=None,
+            noindex=False,
+            internal_links=1,
+            external_links=1,
+            issues=[],
+        ),
+        robots=RobotsAuditResult(
+            url="https://example.com/robots.txt",
+            final_url="https://example.com/robots.txt",
+            status_code=200,
+            content_type="text/plain",
+            line_count=1,
+            user_agents=["*"],
+            allow_count=0,
+            disallow_count=0,
+            sitemap_urls=[],
+            crawl_delay_count=0,
+            unknown_directives=[],
+            blocks_all=False,
+            issues=[],
+        ),
+        sitemap=SitemapAuditResult(
+            url="https://example.com/sitemap.xml",
+            final_url="https://example.com/sitemap.xml",
+            status_code=200,
+            content_type="application/xml",
+            sitemap_type="urlset",
+            url_count=1,
+            urls=[],
+            duplicate_urls=[],
+            invalid_urls=[],
+            urls_with_query=[],
+            off_domain_urls=[],
+            missing_lastmod_count=0,
+            issues=[],
+        ),
+        issues=[],
+    )
+
+    markdown = render_site_markdown(result)
+
+    assert result.next_action is None
+    assert "Nenhuma ação prioritária" in markdown

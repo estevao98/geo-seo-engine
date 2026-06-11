@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 from geo_seo_engine.analyzers.page_audit import PageAuditResult, audit_page
 from geo_seo_engine.analyzers.robots_audit import RobotsAuditResult, audit_robots
 from geo_seo_engine.analyzers.sitemap_audit import SitemapAuditResult, audit_sitemap
+from geo_seo_engine.reporting.recommendations import recommend_issues
 from geo_seo_engine.reporting.severity import calculate_site_score
 
 
@@ -17,9 +18,12 @@ class SiteAuditResult:
     sitemap: SitemapAuditResult
     issues: list[str]
     score: int = field(init=False)
+    next_action: str | None = field(init=False)
 
     def __post_init__(self) -> None:
         self.score = calculate_site_score(self.issues)
+        recommendations = recommend_issues(self.issues)
+        self.next_action = recommendations[0].action if recommendations else None
 
 
 def _default_sitemap_url(url: str) -> str:

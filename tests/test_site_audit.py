@@ -69,6 +69,7 @@ def test_audit_site_uses_sitemap_from_robots(monkeypatch):
     assert result.sitemap.url_count == 1
     assert result.issues == []
     assert result.score == 100
+    assert result.next_action is None
 
 
 def test_audit_site_prefixes_issues(monkeypatch):
@@ -101,8 +102,8 @@ def test_audit_site_prefixes_issues(monkeypatch):
             sitemap_urls=[],
             crawl_delay_count=0,
             unknown_directives=[],
-            blocks_all=False,
-            issues=["status_code_not_200: 404"],
+            blocks_all=True,
+            issues=["disallow_all_found"],
         )
 
     def fake_audit_sitemap(url: str):
@@ -130,7 +131,10 @@ def test_audit_site_prefixes_issues(monkeypatch):
 
     assert result.issues == [
         "page.missing_title",
-        "robots.status_code_not_200: 404",
+        "robots.disallow_all_found",
         "sitemap.xml_parse_error",
     ]
-    assert result.score == 75
+    assert result.score == 48
+    assert result.next_action == (
+        "Revisar o Disallow: / e remover o bloqueio se páginas públicas devem ser rastreadas."
+    )
