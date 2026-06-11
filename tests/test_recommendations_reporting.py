@@ -1,0 +1,34 @@
+from geo_seo_engine.reporting.recommendations import recommend_issue, recommend_issues
+
+
+def test_recommend_missing_canonical():
+    result = recommend_issue("page.missing_canonical")
+
+    assert "canonical" in result.action.lower()
+    assert result.issue == "page.missing_canonical"
+
+
+def test_recommend_sitemap_status_not_200():
+    result = recommend_issue("sitemap.status_code_not_200: 404")
+
+    assert "sitemap" in result.action.lower()
+    assert "200" in result.action
+
+
+def test_recommend_issues_returns_all_items():
+    result = recommend_issues(
+        [
+            "page.missing_canonical",
+            "page.missing_meta_description",
+        ]
+    )
+
+    assert len(result) == 2
+    assert result[0].issue == "page.missing_canonical"
+
+
+def test_recommend_robots_4xx_assumed_no_restrictions():
+    result = recommend_issue("robots.robots_txt_4xx_assumed_no_restrictions")
+
+    assert "robots.txt" in result.action
+    assert "rastre" in result.rationale.lower()

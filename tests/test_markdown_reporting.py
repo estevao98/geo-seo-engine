@@ -68,3 +68,5 @@ def test_render_site_markdown_contains_sections():
     assert "`page.missing_meta_description`" in markdown
     assert "Critical issues" in markdown
     assert "**medium** — `page.missing_meta_description`" in markdown
+    assert "## Recommendations" in markdown
+    assert "**Ação:**" in markdown

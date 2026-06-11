@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from geo_seo_engine.analyzers.site_audit import SiteAuditResult
 from geo_seo_engine.reporting.severity import classify_issues, severity_counts
+from geo_seo_engine.reporting.recommendations import recommend_issues
 
 
 def markdown_list(items: list[str]) -> str:
@@ -18,6 +19,17 @@ def markdown_classified_issues(items: list[str]) -> str:
     return "\n".join(
         f"- **{item.severity}** — `{item.issue}`: {item.reason}"
         for item in classified
+    )
+
+
+def markdown_recommendations(items: list[str]) -> str:
+    recommendations = recommend_issues(items)
+    if not recommendations:
+        return "- Nenhuma recomendação gerada."
+
+    return "\n".join(
+        f"- `{item.issue}` — **Ação:** {item.action} **Motivo:** {item.rationale}"
+        for item in recommendations
     )
 
 
@@ -102,4 +114,8 @@ def render_site_markdown(result: SiteAuditResult) -> str:
 ## All issues
 
 {markdown_classified_issues(result.issues)}
+
+## Recommendations
+
+{markdown_recommendations(result.issues)}
 """
