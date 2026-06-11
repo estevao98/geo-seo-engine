@@ -10,6 +10,14 @@ from geo_seo_engine.core.models import (
     Severity,
     UrlIdentity,
 )
+from geo_seo_engine.core.url import (
+    UrlNormalizationOptions,
+    UrlNormalizationResult,
+    is_same_site,
+    normalize_url,
+    resolve_url,
+    url_host,
+)
 
 __all__ = [
     "AuditRun",
@@ -22,5 +30,11 @@ __all__ = [
     "ScoreSummary",
     "Severity",
     "UrlIdentity",
+    "UrlNormalizationOptions",
+    "UrlNormalizationResult",
+    "is_same_site",
     "legacy_issue_to_issue",
+    "normalize_url",
+    "resolve_url",
+    "url_host",
 ]
