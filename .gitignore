@@ -28,8 +28,13 @@ pnpm-lock.yaml
 # Data / reports sensíveis
 data/raw/
 data/private/
+reports/
 reports/raw/
 exports/
+output/
+outputs/
+tmp/
+temp/
 *.sqlite
 *.sqlite3
 *.db
@@ -60,3 +65,8 @@ Thumbs.db
 *.egg
 build/
 dist/
+
+# Test / coverage outputs
+.coverage
+coverage.xml
+htmlcov/

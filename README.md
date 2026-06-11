@@ -148,9 +148,11 @@ Próximos incrementos planejados:
 ## Avisos de segurança
 
 - Não commitar `.env`.
+- Use `.env.example` apenas com nomes de variáveis e valores vazios ou sintéticos.
 - Não commitar relatórios com dados privados.
 - Não commitar exports brutos de clientes.
 - Não commitar tokens, credenciais, dumps de banco ou arquivos de configuração sensíveis.
+- Antes de publicar ou abrir PR, consulte [`SECURITY.md`](SECURITY.md) e rode a varredura recomendada.
 
 ## O que este repositório não promete
 
