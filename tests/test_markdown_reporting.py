@@ -66,3 +66,5 @@ def test_render_site_markdown_contains_sections():
     assert "## Robots.txt" in markdown
     assert "## Sitemap" in markdown
     assert "`page.missing_meta_description`" in markdown
+    assert "Critical issues" in markdown
+    assert "**medium** — `page.missing_meta_description`" in markdown

@@ -1,12 +1,24 @@
 from __future__ import annotations
 
 from geo_seo_engine.analyzers.site_audit import SiteAuditResult
+from geo_seo_engine.reporting.severity import classify_issues, severity_counts
 
 
 def markdown_list(items: list[str]) -> str:
     if not items:
         return "- Nenhum item encontrado."
     return "\n".join(f"- `{item}`" for item in items)
+
+
+def markdown_classified_issues(items: list[str]) -> str:
+    classified = classify_issues(items)
+    if not classified:
+        return "- Nenhum item encontrado."
+
+    return "\n".join(
+        f"- **{item.severity}** — `{item.issue}`: {item.reason}"
+        for item in classified
+    )
 
 
 def render_site_markdown(result: SiteAuditResult) -> str:
@@ -22,6 +34,10 @@ def render_site_markdown(result: SiteAuditResult) -> str:
 |---|---|
 | URL | `{result.url}` |
 | Total issues | `{len(result.issues)}` |
+| Critical issues | `{severity_counts(result.issues)["critical"]}` |
+| High issues | `{severity_counts(result.issues)["high"]}` |
+| Medium issues | `{severity_counts(result.issues)["medium"]}` |
+| Low issues | `{severity_counts(result.issues)["low"]}` |
 | Page status | `{page.status_code}` |
 | Robots status | `{robots.status_code}` |
 | Sitemap status | `{sitemap.status_code}` |
@@ -85,5 +101,5 @@ def render_site_markdown(result: SiteAuditResult) -> str:
 
 ## All issues
 
-{markdown_list(result.issues)}
+{markdown_classified_issues(result.issues)}
 """
