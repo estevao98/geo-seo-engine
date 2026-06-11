@@ -60,3 +60,25 @@ def test_audit_sitemap_detects_sitemapindex(monkeypatch):
     assert result.sitemap_type == "sitemapindex"
     assert result.url_count == 1
     assert result.urls[0].loc == "https://example.com/sitemap-posts.xml"
+
+
+def test_audit_sitemap_does_not_parse_404_html_body(monkeypatch):
+    html = '<!doctype html><html><head><title>Not Found</title></head></html>'
+
+    def fake_get(*args, **kwargs):
+        return httpx.Response(
+            404,
+            content=html.encode("utf-8"),
+            headers={"content-type": "text/html"},
+            request=httpx.Request("GET", "https://example.com/sitemap.xml"),
+        )
+
+    monkeypatch.setattr(httpx, "get", fake_get)
+
+    result = audit_sitemap("https://example.com/sitemap.xml")
+
+    assert result.status_code == 404
+    assert result.sitemap_type is None
+    assert result.url_count == 0
+    assert result.urls == []
+    assert result.issues == ["status_code_not_200: 404"]

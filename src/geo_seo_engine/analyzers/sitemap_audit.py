@@ -79,6 +79,22 @@ def audit_sitemap(url: str, timeout: float = 20.0) -> SitemapAuditResult:
     if status_code != 200:
         issues.append(f"status_code_not_200: {status_code}")
 
+        return SitemapAuditResult(
+            url=url,
+            final_url=final_url,
+            status_code=status_code,
+            content_type=content_type,
+            sitemap_type=None,
+            url_count=0,
+            urls=[],
+            duplicate_urls=[],
+            invalid_urls=[],
+            urls_with_query=[],
+            off_domain_urls=[],
+            missing_lastmod_count=0,
+            issues=issues,
+        )
+
     try:
         root = ET.fromstring(response.content)
     except ET.ParseError as exc:

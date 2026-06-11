@@ -10,6 +10,7 @@ from rich.table import Table
 
 from geo_seo_engine.analyzers.page_audit import audit_page as run_page_audit
 from geo_seo_engine.analyzers.sitemap_audit import audit_sitemap as run_sitemap_audit
+from geo_seo_engine.analyzers.site_audit import audit_site as run_site_audit
 from geo_seo_engine.analyzers.robots_audit import audit_robots as run_robots_audit
 
 app = typer.Typer(help="SEO + GEO operational CLI.")
@@ -113,6 +114,27 @@ def _render_robots_table(result) -> str:
     return _table_to_text(table)
 
 
+def _render_site_table(result) -> str:
+    table = Table(title="Site Audit")
+    table.add_column("Field")
+    table.add_column("Value")
+
+    table.add_row("URL", result.url)
+    table.add_row("Page status", str(result.page.status_code))
+    table.add_row("Page title", result.page.title or "—")
+    table.add_row("Page noindex", "yes" if result.page.noindex else "no")
+    table.add_row("Robots status", str(result.robots.status_code))
+    table.add_row("Robots blocks all", "yes" if result.robots.blocks_all else "no")
+    table.add_row("Robots sitemaps", " | ".join(result.robots.sitemap_urls) if result.robots.sitemap_urls else "—")
+    table.add_row("Sitemap status", str(result.sitemap.status_code))
+    table.add_row("Sitemap type", result.sitemap.sitemap_type or "—")
+    table.add_row("Sitemap URL count", str(result.sitemap.url_count))
+    table.add_row("Total issues", str(len(result.issues)))
+    table.add_row("Issues", ", ".join(result.issues) if result.issues else "none")
+
+    return _table_to_text(table)
+
+
 @app.command("audit-page")
 def audit_page(
     url: str,
@@ -192,6 +214,38 @@ def audit_robots(
         return
 
     _write_or_print(_render_robots_table(result), output)
+
+
+@app.command("audit-site")
+def audit_site(
+    url: str,
+    sitemap_url: str | None = typer.Option(
+        None,
+        "--sitemap-url",
+        help="Override sitemap URL. If omitted, robots.txt sitemap is used when available, otherwise /sitemap.xml.",
+    ),
+    output_format: Literal["table", "json"] = typer.Option(
+        "table",
+        "--format",
+        "-f",
+        help="Output format: table or json.",
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Write output to a file.",
+    ),
+) -> None:
+    """Run page, robots and sitemap audits for a site."""
+    result = run_site_audit(url, sitemap_url=sitemap_url)
+
+    if output_format == "json":
+        rendered = json.dumps(asdict(result), ensure_ascii=False, indent=2)
+        _write_or_print(rendered, output, is_json=True)
+        return
+
+    _write_or_print(_render_site_table(result), output)
 
 
 if __name__ == "__main__":
