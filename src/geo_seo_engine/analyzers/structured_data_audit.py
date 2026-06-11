@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 
-import httpx
 from bs4 import BeautifulSoup
+
+from geo_seo_engine.http import FetchResult, HttpClient, HttpClientConfig
 
 
 @dataclass
@@ -134,22 +135,29 @@ def audit_structured_data_html(html: str) -> StructuredDataAuditResult:
     )
 
 
-def audit_structured_data(url: str, timeout: float = 15.0) -> StructuredDataAuditResult:
-    try:
-        response = httpx.get(
-            url,
-            follow_redirects=True,
-            timeout=timeout,
-            headers={"User-Agent": "geo-seo-engine/0.1.0 (+https://example.com)"},
-        )
-    except httpx.HTTPError as exc:
+def audit_structured_data(
+    url: str,
+    timeout: float = 15.0,
+    html: str | None = None,
+    http_client: HttpClient | None = None,
+    fetch_result: FetchResult | None = None,
+) -> StructuredDataAuditResult:
+    if html is not None:
+        return audit_structured_data_html(html)
+
+    result = fetch_result
+    if result is None:
+        client = http_client or HttpClient(HttpClientConfig(timeout_seconds=timeout))
+        result = client.fetch(url)
+
+    if result.error:
         return StructuredDataAuditResult(
             json_ld_blocks=0,
             valid_json_ld_blocks=0,
             invalid_json_ld_blocks=0,
             types=[],
             blocks=[],
-            issues=[f"request_error: {exc}"],
+            issues=[f"request_error: {result.error}"],
         )
 
-    return audit_structured_data_html(response.text)
+    return audit_structured_data_html(result.text)

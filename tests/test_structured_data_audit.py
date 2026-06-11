@@ -1,4 +1,10 @@
-from geo_seo_engine.analyzers.structured_data_audit import audit_structured_data_html
+import httpx
+
+from geo_seo_engine.analyzers.structured_data_audit import (
+    audit_structured_data,
+    audit_structured_data_html,
+)
+from geo_seo_engine.http import HttpClient, HttpClientConfig
 
 
 def test_audit_structured_data_reports_missing_when_no_json_ld():
@@ -57,3 +63,21 @@ def test_audit_structured_data_reports_missing_type():
     assert result.valid_json_ld_blocks == 1
     assert result.types == []
     assert result.issues == ["missing_type"]
+
+
+def test_audit_structured_data_uses_injected_http_client():
+    html = """
+    <script type="application/ld+json">
+      {"@context": "https://schema.org", "@type": "WebPage"}
+    </script>
+    """
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(200, text=html, request=request)
+    )
+    client = HttpClient(HttpClientConfig(retries=0), transport=transport)
+
+    result = audit_structured_data("https://example.com/page", http_client=client)
+
+    assert result.json_ld_blocks == 1
+    assert result.types == ["WebPage"]
+    assert result.issues == []

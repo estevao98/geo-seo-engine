@@ -3,12 +3,28 @@ from geo_seo_engine.analyzers.robots_audit import RobotsAuditResult
 from geo_seo_engine.analyzers.sitemap_audit import SitemapAuditResult
 from geo_seo_engine.analyzers.structured_data_audit import StructuredDataAuditResult
 from geo_seo_engine.analyzers.site_audit import audit_site
+from geo_seo_engine.http import FetchResult
 
 import geo_seo_engine.analyzers.site_audit as site_audit_module
 
 
+class FakeHttpClient:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def fetch(self, url: str) -> FetchResult:
+        return FetchResult(
+            url=url,
+            final_url=url,
+            status_code=200,
+            headers={"content-type": "text/html"},
+            text="<html></html>",
+            content_type="text/html",
+        )
+
+
 def test_audit_site_uses_sitemap_from_robots(monkeypatch):
-    def fake_audit_page(url: str):
+    def fake_audit_page(url: str, **kwargs):
         return PageAuditResult(
             url=url,
             final_url=url,
@@ -59,7 +75,7 @@ def test_audit_site_uses_sitemap_from_robots(monkeypatch):
             issues=[],
         )
 
-    def fake_audit_structured_data(url: str):
+    def fake_audit_structured_data(url: str, **kwargs):
         return StructuredDataAuditResult(
             json_ld_blocks=1,
             valid_json_ld_blocks=1,
@@ -72,6 +88,7 @@ def test_audit_site_uses_sitemap_from_robots(monkeypatch):
     monkeypatch.setattr(site_audit_module, "audit_page", fake_audit_page)
     monkeypatch.setattr(site_audit_module, "audit_robots", fake_audit_robots)
     monkeypatch.setattr(site_audit_module, "audit_sitemap", fake_audit_sitemap)
+    monkeypatch.setattr(site_audit_module, "HttpClient", FakeHttpClient)
     monkeypatch.setattr(
         site_audit_module, "audit_structured_data", fake_audit_structured_data
     )
@@ -88,7 +105,7 @@ def test_audit_site_uses_sitemap_from_robots(monkeypatch):
 
 
 def test_audit_site_prefixes_issues(monkeypatch):
-    def fake_audit_page(url: str):
+    def fake_audit_page(url: str, **kwargs):
         return PageAuditResult(
             url=url,
             final_url=url,
@@ -138,7 +155,7 @@ def test_audit_site_prefixes_issues(monkeypatch):
             issues=["xml_parse_error"],
         )
 
-    def fake_audit_structured_data(url: str):
+    def fake_audit_structured_data(url: str, **kwargs):
         return StructuredDataAuditResult(
             json_ld_blocks=0,
             valid_json_ld_blocks=0,
@@ -151,6 +168,7 @@ def test_audit_site_prefixes_issues(monkeypatch):
     monkeypatch.setattr(site_audit_module, "audit_page", fake_audit_page)
     monkeypatch.setattr(site_audit_module, "audit_robots", fake_audit_robots)
     monkeypatch.setattr(site_audit_module, "audit_sitemap", fake_audit_sitemap)
+    monkeypatch.setattr(site_audit_module, "HttpClient", FakeHttpClient)
     monkeypatch.setattr(
         site_audit_module, "audit_structured_data", fake_audit_structured_data
     )

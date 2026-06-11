@@ -11,6 +11,7 @@ from geo_seo_engine.analyzers.structured_data_audit import (
     audit_structured_data,
     empty_structured_data_result,
 )
+from geo_seo_engine.http import HttpClient, HttpClientConfig
 from geo_seo_engine.reporting.recommendations import recommend_issues
 from geo_seo_engine.reporting.severity import calculate_site_score
 
@@ -42,8 +43,10 @@ def _default_sitemap_url(url: str) -> str:
 
 
 def audit_site(url: str, sitemap_url: str | None = None) -> SiteAuditResult:
-    page_result = audit_page(url)
-    structured_data_result = audit_structured_data(url)
+    http_client = HttpClient(HttpClientConfig(timeout_seconds=15.0))
+    page_fetch_result = http_client.fetch(url)
+    page_result = audit_page(url, fetch_result=page_fetch_result)
+    structured_data_result = audit_structured_data(url, fetch_result=page_fetch_result)
     robots_result = audit_robots(url)
 
     selected_sitemap_url = (

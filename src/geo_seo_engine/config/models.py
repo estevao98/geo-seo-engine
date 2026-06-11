@@ -31,6 +31,8 @@ class HttpConfig(ConfigBaseModel):
     follow_redirects: bool = True
     user_agent: str = Field(default=DEFAULT_USER_AGENT, min_length=1, max_length=300)
     retries: int = Field(default=1, ge=0, le=5)
+    max_response_bytes: int = Field(default=2_000_000, ge=1, le=20_000_000)
+    block_private_hosts: bool = False
 
 
 class CrawlerConfig(ConfigBaseModel):

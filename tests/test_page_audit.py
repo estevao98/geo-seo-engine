@@ -1,9 +1,10 @@
 import httpx
 
 from geo_seo_engine.analyzers.page_audit import audit_page
+from geo_seo_engine.http import HttpClient, HttpClientConfig
 
 
-def test_audit_page_extracts_basic_metadata(monkeypatch):
+def test_audit_page_extracts_basic_metadata():
     html = '''
     <html>
       <head>
@@ -19,17 +20,20 @@ def test_audit_page_extracts_basic_metadata(monkeypatch):
     </html>
     '''
 
-    def fake_get(*args, **kwargs):
+    def handler(request):
         return httpx.Response(
             200,
             text=html,
             headers={"content-type": "text/html"},
-            request=httpx.Request("GET", "https://example.com/page"),
+            request=request,
         )
 
-    monkeypatch.setattr(httpx, "get", fake_get)
+    client = HttpClient(
+        HttpClientConfig(retries=0),
+        transport=httpx.MockTransport(handler),
+    )
 
-    result = audit_page("https://example.com/page")
+    result = audit_page("https://example.com/page", http_client=client)
 
     assert result.status_code == 200
     assert result.title == "Example Title"

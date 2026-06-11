@@ -3,8 +3,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
-import httpx
 from bs4 import BeautifulSoup
+
+from geo_seo_engine.http import FetchResult, HttpClient, HttpClientConfig
 
 
 @dataclass
@@ -40,19 +41,20 @@ def _clean_text(value: str | None) -> str | None:
     return cleaned or None
 
 
-def audit_page(url: str, timeout: float = 15.0) -> PageAuditResult:
+def audit_page(
+    url: str,
+    timeout: float = 15.0,
+    http_client: HttpClient | None = None,
+    fetch_result: FetchResult | None = None,
+) -> PageAuditResult:
     issues: list[str] = []
 
-    try:
-        response = httpx.get(
-            url,
-            follow_redirects=True,
-            timeout=timeout,
-            headers={
-                "User-Agent": "geo-seo-engine/0.1.0 (+https://example.com)"
-            },
-        )
-    except httpx.HTTPError as exc:
+    result = fetch_result
+    if result is None:
+        client = http_client or HttpClient(HttpClientConfig(timeout_seconds=timeout))
+        result = client.fetch(url)
+
+    if result.error:
         return PageAuditResult(
             url=url,
             final_url=url,
@@ -65,20 +67,20 @@ def audit_page(url: str, timeout: float = 15.0) -> PageAuditResult:
             noindex=False,
             internal_links=0,
             external_links=0,
-            issues=[f"request_error: {exc}"],
+            issues=[f"request_error: {result.error}"],
         )
 
-    final_url = str(response.url)
-    status_code = response.status_code
+    final_url = result.final_url
+    status_code = result.status_code
 
     if status_code != 200:
         issues.append(f"status_code_not_200: {status_code}")
 
-    content_type = response.headers.get("content-type", "")
+    content_type = result.content_type
     if "text/html" not in content_type:
         issues.append(f"non_html_content_type: {content_type}")
 
-    soup = BeautifulSoup(response.text, "html.parser")
+    soup = BeautifulSoup(result.text, "html.parser")
 
     title = _clean_text(soup.title.string if soup.title and soup.title.string else None)
     meta_description = _clean_text(
