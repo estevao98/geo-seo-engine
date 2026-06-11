@@ -1,5 +1,6 @@
 import json
 from dataclasses import asdict
+from pathlib import Path
 from typing import Literal
 
 import typer
@@ -20,23 +21,7 @@ def version() -> None:
     typer.echo(__version__)
 
 
-@app.command("audit-page")
-def audit_page(
-    url: str,
-    output_format: Literal["table", "json"] = typer.Option(
-        "table",
-        "--format",
-        "-f",
-        help="Output format: table or json.",
-    ),
-) -> None:
-    """Audit a single public HTML page."""
-    result = run_page_audit(url)
-
-    if output_format == "json":
-        typer.echo(json.dumps(asdict(result), ensure_ascii=False, indent=2))
-        return
-
+def _render_table(result) -> str:
     table = Table(title="Page Audit")
     table.add_column("Field")
     table.add_column("Value")
@@ -54,7 +39,46 @@ def audit_page(
     table.add_row("External links", str(result.external_links))
     table.add_row("Issues", ", ".join(result.issues) if result.issues else "none")
 
-    console.print(table)
+    buffer_console = Console(record=True)
+    buffer_console.print(table)
+    return buffer_console.export_text()
+
+
+@app.command("audit-page")
+def audit_page(
+    url: str,
+    output_format: Literal["table", "json"] = typer.Option(
+        "table",
+        "--format",
+        "-f",
+        help="Output format: table or json.",
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Write output to a file.",
+    ),
+) -> None:
+    """Audit a single public HTML page."""
+    result = run_page_audit(url)
+
+    if output_format == "json":
+        rendered = json.dumps(asdict(result), ensure_ascii=False, indent=2)
+    else:
+        rendered = _render_table(result)
+
+    if output:
+        output.parent.mkdir(parents=True, exist_ok=True)
+        output.write_text(rendered + "\n", encoding="utf-8")
+        typer.echo(f"Output written to {output}")
+        return
+
+    if output_format == "json":
+        typer.echo(rendered)
+        return
+
+    console.print(rendered)
 
 
 if __name__ == "__main__":
