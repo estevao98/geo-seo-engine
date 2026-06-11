@@ -145,6 +145,10 @@ Próximos incrementos planejados:
 - Ampliar regras de recomendação para novas issues técnicas.
 - Evoluir relatórios sem prometer ganho de ranking, indexação ou presença em respostas de IA.
 
+## Planejamento senior
+
+Uma pesquisa critica e operacional para evoluir o MVP em uma engine senior esta em [`docs/senior-engine/`](docs/senior-engine/). Ela inclui fontes pesquisadas, gap analysis, arquitetura v2, roadmap faseado, prompt pack para implementacao futura e comandos sugeridos para issues GitHub.
+
 ## Avisos de segurança
 
 - Não commitar `.env`.
