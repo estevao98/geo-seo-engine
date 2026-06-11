@@ -50,3 +50,13 @@ def test_recommend_robots_4xx_assumed_no_restrictions():
 
     assert "robots.txt" in result.action
     assert "rastre" in result.rationale.lower()
+
+
+def test_recommend_structured_data_issues():
+    missing = recommend_issue("structured_data.missing")
+    invalid = recommend_issue("structured_data.invalid_json_ld")
+    missing_type = recommend_issue("structured_data.missing_type")
+
+    assert "JSON-LD" in missing.action
+    assert "sintaxe" in invalid.action.lower()
+    assert "@type" in missing_type.action

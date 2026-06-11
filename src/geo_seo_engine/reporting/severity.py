@@ -81,6 +81,7 @@ def classify_issue(issue: str) -> IssueSeverity:
             "page.missing_canonical",
             "sitemap.no_urls_found",
             "sitemap.invalid_urls_found",
+            "structured_data.invalid_json_ld",
         )
     ):
         return IssueSeverity(
@@ -96,6 +97,8 @@ def classify_issue(issue: str) -> IssueSeverity:
             "sitemap.urls_with_query_found",
             "sitemap.off_domain_urls_found",
             "robots.unknown_or_invalid_directives_found",
+            "structured_data.missing",
+            "structured_data.missing_type",
         )
     ):
         return IssueSeverity(

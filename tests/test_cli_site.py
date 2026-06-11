@@ -77,6 +77,7 @@ def test_audit_site_json_output(monkeypatch):
     assert data["page"]["status_code"] == 200
     assert data["robots"]["status_code"] == 200
     assert data["sitemap"]["url_count"] == 1
+    assert data["structured_data"]["json_ld_blocks"] == 0
     assert data["score"] == 100
     assert data["next_action"] is None
 
@@ -219,4 +220,5 @@ def test_audit_site_markdown_output(monkeypatch):
     assert "## Page" in result.stdout
     assert "## Robots.txt" in result.stdout
     assert "## Sitemap" in result.stdout
+    assert "## Structured Data" in result.stdout
     assert "`page.missing_meta_description`" in result.stdout

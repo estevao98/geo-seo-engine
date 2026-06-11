@@ -6,6 +6,11 @@ from urllib.parse import urlparse
 from geo_seo_engine.analyzers.page_audit import PageAuditResult, audit_page
 from geo_seo_engine.analyzers.robots_audit import RobotsAuditResult, audit_robots
 from geo_seo_engine.analyzers.sitemap_audit import SitemapAuditResult, audit_sitemap
+from geo_seo_engine.analyzers.structured_data_audit import (
+    StructuredDataAuditResult,
+    audit_structured_data,
+    empty_structured_data_result,
+)
 from geo_seo_engine.reporting.recommendations import recommend_issues
 from geo_seo_engine.reporting.severity import calculate_site_score
 
@@ -17,6 +22,9 @@ class SiteAuditResult:
     robots: RobotsAuditResult
     sitemap: SitemapAuditResult
     issues: list[str]
+    structured_data: StructuredDataAuditResult = field(
+        default_factory=empty_structured_data_result
+    )
     score: int = field(init=False)
     next_action: str | None = field(init=False)
 
@@ -35,6 +43,7 @@ def _default_sitemap_url(url: str) -> str:
 
 def audit_site(url: str, sitemap_url: str | None = None) -> SiteAuditResult:
     page_result = audit_page(url)
+    structured_data_result = audit_structured_data(url)
     robots_result = audit_robots(url)
 
     selected_sitemap_url = (
@@ -56,10 +65,14 @@ def audit_site(url: str, sitemap_url: str | None = None) -> SiteAuditResult:
     for issue in sitemap_result.issues:
         issues.append(f"sitemap.{issue}")
 
+    for issue in structured_data_result.issues:
+        issues.append(f"structured_data.{issue}")
+
     return SiteAuditResult(
         url=url,
         page=page_result,
         robots=robots_result,
         sitemap=sitemap_result,
+        structured_data=structured_data_result,
         issues=issues,
     )

@@ -35,6 +35,12 @@ def test_classify_missing_meta_description_as_medium():
     assert result.severity == "medium"
 
 
+def test_classify_structured_data_issues():
+    assert classify_issue("structured_data.missing").severity == "medium"
+    assert classify_issue("structured_data.invalid_json_ld").severity == "high"
+    assert classify_issue("structured_data.missing_type").severity == "medium"
+
+
 def test_severity_counts():
     counts = severity_counts(
         [

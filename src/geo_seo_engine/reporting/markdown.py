@@ -33,10 +33,23 @@ def markdown_recommendations(items: list[str]) -> str:
     )
 
 
+def markdown_json_ld_blocks(blocks) -> str:
+    if not blocks:
+        return "- Nenhum bloco JSON-LD encontrado."
+
+    return "\n".join(
+        f"- Bloco `{block.index}` — valid: `{'yes' if block.valid else 'no'}`; "
+        f"types: `{', '.join(block.types) if block.types else '—'}`; "
+        f"error: `{block.error or '—'}`"
+        for block in blocks
+    )
+
+
 def render_site_markdown(result: SiteAuditResult) -> str:
     page = result.page
     robots = result.robots
     sitemap = result.sitemap
+    structured_data = result.structured_data
 
     return f"""# Site Audit Report
 
@@ -112,6 +125,23 @@ def render_site_markdown(result: SiteAuditResult) -> str:
 ### Sitemap issues
 
 {markdown_list(sitemap.issues)}
+
+## Structured Data
+
+| Field | Value |
+|---|---|
+| JSON-LD blocks | `{structured_data.json_ld_blocks}` |
+| Valid JSON-LD blocks | `{structured_data.valid_json_ld_blocks}` |
+| Invalid JSON-LD blocks | `{structured_data.invalid_json_ld_blocks}` |
+| Types | `{", ".join(structured_data.types) if structured_data.types else "—"}` |
+
+### JSON-LD blocks
+
+{markdown_json_ld_blocks(structured_data.blocks)}
+
+### Structured Data issues
+
+{markdown_list(structured_data.issues)}
 
 ## All issues
 

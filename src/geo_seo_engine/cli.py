@@ -131,6 +131,11 @@ def _render_site_table(result) -> str:
     table.add_row("Sitemap status", str(result.sitemap.status_code))
     table.add_row("Sitemap type", result.sitemap.sitemap_type or "—")
     table.add_row("Sitemap URL count", str(result.sitemap.url_count))
+    table.add_row("Structured data JSON-LD blocks", str(result.structured_data.json_ld_blocks))
+    table.add_row(
+        "Structured data types",
+        " | ".join(result.structured_data.types) if result.structured_data.types else "—",
+    )
     table.add_row("Total issues", str(len(result.issues)))
     table.add_row("Issues", ", ".join(result.issues) if result.issues else "none")
 

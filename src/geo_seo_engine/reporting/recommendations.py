@@ -119,6 +119,27 @@ def recommend_issue(issue: str) -> IssueRecommendation:
             rationale="URLs inválidas não são úteis para rastreamento nem indexação.",
         )
 
+    if issue.startswith("structured_data.invalid_json_ld"):
+        return IssueRecommendation(
+            issue=issue,
+            action="Corrigir a sintaxe do JSON-LD em todos os blocos application/ld+json inválidos.",
+            rationale="JSON-LD inválido pode ser ignorado por mecanismos de busca e ferramentas de validação.",
+        )
+
+    if issue.startswith("structured_data.missing_type"):
+        return IssueRecommendation(
+            issue=issue,
+            action="Definir @type nos blocos JSON-LD válidos, usando tipos schema.org que representem corretamente o conteúdo.",
+            rationale="O @type explicita a entidade descrita e reduz ambiguidade semântica para consumidores de structured data.",
+        )
+
+    if issue.startswith("structured_data.missing"):
+        return IssueRecommendation(
+            issue=issue,
+            action="Adicionar JSON-LD relevante para o tipo real da página, como Organization, WebSite, Article, Product ou FAQPage quando aplicável.",
+            rationale="Dados estruturados ajudam mecanismos de busca e experiências generativas a entender entidades, contexto e elegibilidade a recursos enriquecidos.",
+        )
+
     return IssueRecommendation(
         issue=issue,
         action="Revisar manualmente a issue e definir ação corretiva.",
