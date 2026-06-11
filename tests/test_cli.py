@@ -92,3 +92,12 @@ def test_audit_page_json_output_file(monkeypatch, tmp_path):
     assert data["title"] == "Example Title"
     assert data["canonical"] == "https://example.com"
     assert data["issues"] == []
+
+
+def test_audit_page_rejects_markdown_format():
+    result = runner.invoke(
+        app,
+        ["audit-page", "https://example.com", "--format", "markdown"],
+    )
+
+    assert result.exit_code != 0

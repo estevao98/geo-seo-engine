@@ -135,6 +135,92 @@ def _render_site_table(result) -> str:
     return _table_to_text(table)
 
 
+def _markdown_list(items: list[str]) -> str:
+    if not items:
+        return "- Nenhum item encontrado."
+    return "\n".join(f"- `{item}`" for item in items)
+
+
+def _render_site_markdown(result) -> str:
+    page = result.page
+    robots = result.robots
+    sitemap = result.sitemap
+
+    return f"""# Site Audit Report
+
+## Summary
+
+| Field | Value |
+|---|---|
+| URL | `{result.url}` |
+| Total issues | `{len(result.issues)}` |
+| Page status | `{page.status_code}` |
+| Robots status | `{robots.status_code}` |
+| Sitemap status | `{sitemap.status_code}` |
+
+## Page
+
+| Field | Value |
+|---|---|
+| Final URL | `{page.final_url}` |
+| Status | `{page.status_code}` |
+| Title | `{page.title or "—"}` |
+| Meta description | `{page.meta_description or "—"}` |
+| H1 | `{", ".join(page.h1) if page.h1 else "—"}` |
+| Canonical | `{page.canonical or "—"}` |
+| Meta robots | `{page.meta_robots or "—"}` |
+| Noindex | `{"yes" if page.noindex else "no"}` |
+| Internal links | `{page.internal_links}` |
+| External links | `{page.external_links}` |
+
+### Page issues
+
+{_markdown_list(page.issues)}
+
+## Robots.txt
+
+| Field | Value |
+|---|---|
+| URL | `{robots.url}` |
+| Final URL | `{robots.final_url}` |
+| Status | `{robots.status_code}` |
+| Content-Type | `{robots.content_type or "—"}` |
+| User-agents | `{", ".join(robots.user_agents) if robots.user_agents else "—"}` |
+| Allow count | `{robots.allow_count}` |
+| Disallow count | `{robots.disallow_count}` |
+| Blocks all | `{"yes" if robots.blocks_all else "no"}` |
+| Sitemaps | `{", ".join(robots.sitemap_urls) if robots.sitemap_urls else "—"}` |
+
+### Robots issues
+
+{_markdown_list(robots.issues)}
+
+## Sitemap
+
+| Field | Value |
+|---|---|
+| URL | `{sitemap.url}` |
+| Final URL | `{sitemap.final_url}` |
+| Status | `{sitemap.status_code}` |
+| Content-Type | `{sitemap.content_type or "—"}` |
+| Sitemap type | `{sitemap.sitemap_type or "—"}` |
+| URL count | `{sitemap.url_count}` |
+| Duplicate URLs | `{len(sitemap.duplicate_urls)}` |
+| Invalid URLs | `{len(sitemap.invalid_urls)}` |
+| URLs with query | `{len(sitemap.urls_with_query)}` |
+| Off-domain URLs | `{len(sitemap.off_domain_urls)}` |
+| Missing lastmod | `{sitemap.missing_lastmod_count}` |
+
+### Sitemap issues
+
+{_markdown_list(sitemap.issues)}
+
+## All issues
+
+{_markdown_list(result.issues)}
+"""
+
+
 @app.command("audit-page")
 def audit_page(
     url: str,
@@ -224,7 +310,7 @@ def audit_site(
         "--sitemap-url",
         help="Override sitemap URL. If omitted, robots.txt sitemap is used when available, otherwise /sitemap.xml.",
     ),
-    output_format: Literal["table", "json"] = typer.Option(
+    output_format: Literal["table", "json", "markdown"] = typer.Option(
         "table",
         "--format",
         "-f",
@@ -243,6 +329,10 @@ def audit_site(
     if output_format == "json":
         rendered = json.dumps(asdict(result), ensure_ascii=False, indent=2)
         _write_or_print(rendered, output, is_json=True)
+        return
+
+    if output_format == "markdown":
+        _write_or_print(_render_site_markdown(result), output)
         return
 
     _write_or_print(_render_site_table(result), output)

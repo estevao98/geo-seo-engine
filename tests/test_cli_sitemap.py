@@ -72,3 +72,12 @@ def test_audit_sitemap_table_output_is_not_duplicated(monkeypatch):
 
     assert result.exit_code == 0
     assert result.stdout.count("Sitemap Audit") == 1
+
+
+def test_audit_sitemap_rejects_markdown_format():
+    result = runner.invoke(
+        app,
+        ["audit-sitemap", "https://example.com/sitemap.xml", "--format", "markdown"],
+    )
+
+    assert result.exit_code != 0

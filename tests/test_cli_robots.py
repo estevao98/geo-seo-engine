@@ -69,3 +69,12 @@ def test_audit_robots_table_output_is_not_duplicated(monkeypatch):
 
     assert result.exit_code == 0
     assert result.stdout.count("Robots Audit") == 1
+
+
+def test_audit_robots_rejects_markdown_format():
+    result = runner.invoke(
+        app,
+        ["audit-robots", "https://example.com/robots.txt", "--format", "markdown"],
+    )
+
+    assert result.exit_code != 0
