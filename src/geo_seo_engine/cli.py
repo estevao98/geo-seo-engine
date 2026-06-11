@@ -9,12 +9,16 @@ from rich.console import Console
 from rich.table import Table
 
 from geo_seo_engine.analyzers.page_audit import audit_page as run_page_audit
+from geo_seo_engine.config.loader import DEFAULT_PROJECT_CONFIG_YAML
+from geo_seo_engine.config.loader import validate_project_config as run_config_validation
 from geo_seo_engine.analyzers.sitemap_audit import audit_sitemap as run_sitemap_audit
 from geo_seo_engine.analyzers.site_audit import audit_site as run_site_audit
 from geo_seo_engine.reporting.markdown import render_site_markdown
 from geo_seo_engine.analyzers.robots_audit import audit_robots as run_robots_audit
 
 app = typer.Typer(help="SEO + GEO operational CLI.")
+config_app = typer.Typer(help="Project configuration commands.")
+app.add_typer(config_app, name="config")
 
 
 @app.command()
@@ -37,6 +41,49 @@ def _write_or_print(rendered: str, output: Path | None, is_json: bool = False) -
         return
 
     typer.echo(rendered, nl=False)
+
+
+@app.command("init")
+def init_project(
+    config: Path = typer.Option(
+        Path("geo-seo.yml"),
+        "--config",
+        "-c",
+        help="Path for the project config file.",
+    ),
+    force: bool = typer.Option(
+        False,
+        "--force",
+        help="Overwrite an existing config file.",
+    ),
+) -> None:
+    """Create a safe starter project config."""
+    if config.exists() and not force:
+        typer.echo(f"Config file already exists: {config}. Use --force to overwrite.", err=True)
+        raise typer.Exit(code=1)
+
+    config.parent.mkdir(parents=True, exist_ok=True)
+    config.write_text(DEFAULT_PROJECT_CONFIG_YAML, encoding="utf-8")
+    typer.echo(f"Config file written to {config}")
+
+
+@config_app.command("validate")
+def validate_config(
+    config: Path = typer.Option(
+        Path("geo-seo.yml"),
+        "--config",
+        "-c",
+        help="Path to the project config file.",
+    ),
+) -> None:
+    """Validate a project config file."""
+    try:
+        project_config = run_config_validation(config)
+    except ValueError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
+
+    typer.echo(f"Config valid: {project_config.project_name}")
 
 
 def _table_to_text(table: Table) -> str:

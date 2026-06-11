@@ -7,6 +7,8 @@ CLI operacional para auditorias iniciais de SEO técnico e GEO em páginas, robo
 O MVP atual entrega uma CLI chamada `geo` com estes comandos:
 
 - `geo version`: mostra a versão instalada.
+- `geo init`: cria um `geo-seo.yml` seguro para configurar um projeto.
+- `geo config validate --config geo-seo.yml`: valida a configuração YAML do projeto.
 - `geo audit-page <url>`: audita uma página HTML pública.
 - `geo audit-sitemap <url>`: audita um sitemap XML ou sitemap index.
 - `geo audit-robots <url>`: audita um arquivo robots.txt.
@@ -41,6 +43,15 @@ geo version
 Observação: a flag `geo --version` ainda não está disponível no MVP atual; use o subcomando `geo version`.
 
 ## Comandos principais
+
+Criar e validar configuração de projeto:
+
+```bash
+geo init
+geo config validate --config geo-seo.yml
+```
+
+Um exemplo versionado e sem segredos está disponível em [`examples/geo-seo.example.yml`](examples/geo-seo.example.yml).
 
 Auditar uma página pública:
 
