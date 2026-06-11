@@ -77,6 +77,7 @@ def test_audit_site_json_output(monkeypatch):
     assert data["page"]["status_code"] == 200
     assert data["robots"]["status_code"] == 200
     assert data["sitemap"]["url_count"] == 1
+    assert data["score"] == 100
 
 
 def test_audit_site_table_output_is_not_duplicated(monkeypatch):

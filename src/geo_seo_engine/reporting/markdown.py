@@ -45,6 +45,7 @@ def render_site_markdown(result: SiteAuditResult) -> str:
 | Field | Value |
 |---|---|
 | URL | `{result.url}` |
+| Score | `{result.score}` |
 | Total issues | `{len(result.issues)}` |
 | Critical issues | `{severity_counts(result.issues)["critical"]}` |
 | High issues | `{severity_counts(result.issues)["high"]}` |

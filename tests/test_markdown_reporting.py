@@ -62,6 +62,7 @@ def test_render_site_markdown_contains_sections():
     markdown = render_site_markdown(result)
 
     assert "# Site Audit Report" in markdown
+    assert "| Score | `75` |" in markdown
     assert "## Page" in markdown
     assert "## Robots.txt" in markdown
     assert "## Sitemap" in markdown

@@ -68,6 +68,7 @@ def test_audit_site_uses_sitemap_from_robots(monkeypatch):
     assert result.robots.sitemap_urls == ["https://example.com/custom-sitemap.xml"]
     assert result.sitemap.url_count == 1
     assert result.issues == []
+    assert result.score == 100
 
 
 def test_audit_site_prefixes_issues(monkeypatch):
@@ -132,3 +133,4 @@ def test_audit_site_prefixes_issues(monkeypatch):
         "robots.status_code_not_200: 404",
         "sitemap.xml_parse_error",
     ]
+    assert result.score == 75

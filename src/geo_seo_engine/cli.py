@@ -121,6 +121,7 @@ def _render_site_table(result) -> str:
     table.add_column("Value")
 
     table.add_row("URL", result.url)
+    table.add_row("Score", str(result.score))
     table.add_row("Page status", str(result.page.status_code))
     table.add_row("Page title", result.page.title or "—")
     table.add_row("Page noindex", "yes" if result.page.noindex else "no")

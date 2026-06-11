@@ -1,4 +1,8 @@
-from geo_seo_engine.reporting.severity import classify_issue, severity_counts
+from geo_seo_engine.reporting.severity import (
+    calculate_site_score,
+    classify_issue,
+    severity_counts,
+)
 
 
 def test_classify_page_status_code_issue_as_critical():
@@ -48,3 +52,29 @@ def test_severity_counts():
         "medium": 1,
         "low": 2,
     }
+
+
+def test_calculate_site_score_uses_issue_severity_penalties():
+    score = calculate_site_score(
+        [
+            "page.meta_robots_noindex",
+            "sitemap.status_code_not_200: 404",
+            "page.missing_meta_description",
+            "robots.missing_sitemap_directive",
+        ]
+    )
+
+    assert score == 45
+
+
+def test_calculate_site_score_has_zero_floor():
+    score = calculate_site_score(
+        [
+            "page.status_code_not_200: 500",
+            "page.meta_robots_noindex",
+            "robots.disallow_all_found",
+            "robots.status_code_not_200: 500",
+        ]
+    )
+
+    assert score == 0

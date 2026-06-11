@@ -7,6 +7,13 @@ from typing import Literal
 
 Severity = Literal["critical", "high", "medium", "low"]
 
+SCORE_PENALTIES: dict[Severity, int] = {
+    "critical": 30,
+    "high": 15,
+    "medium": 7,
+    "low": 3,
+}
+
 
 @dataclass(frozen=True)
 class IssueSeverity:
@@ -132,3 +139,12 @@ def severity_counts(issues: list[str]) -> dict[str, int]:
         counts[classified.severity] += 1
 
     return counts
+
+
+def calculate_site_score(issues: list[str]) -> int:
+    score = 100
+
+    for classified in classify_issues(issues):
+        score -= SCORE_PENALTIES[classified.severity]
+
+    return max(score, 0)
