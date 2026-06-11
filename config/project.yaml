@@ -1,0 +1,41 @@
+project:
+  name: "Example SaaS"
+  domain: "https://example.com"
+  language: "pt-BR"
+  country: "BR"
+  product_type: "SaaS"
+  stage: "early"
+
+audience:
+  primary:
+    - "persona principal"
+  secondary: []
+
+positioning:
+  one_liner: "Descreva o produto em uma frase."
+  core_problem: "Problema principal."
+  core_solution: "Solução principal."
+  differentiation: []
+
+seo:
+  primary_topics: []
+  excluded_paths:
+    - "/login"
+    - "/admin"
+    - "/dashboard"
+    - "/checkout"
+
+geo:
+  target_engines:
+    - "Google AI Overviews"
+    - "ChatGPT Search"
+    - "Perplexity"
+    - "Gemini"
+  citation_goal: "Ser reconhecido como fonte útil e verificável no nicho."
+
+quality:
+  require_author: true
+  require_examples: true
+  require_internal_links: true
+  require_schema: true
+  forbid_generic_ai_content: true

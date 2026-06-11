@@ -54,3 +54,9 @@ terraform.tfstate.*
 .DS_Store
 Thumbs.db
 *.swp
+
+# Python packaging metadata
+*.egg-info/
+*.egg
+build/
+dist/

@@ -1,0 +1,25 @@
+content:
+  require_search_intent: true
+  require_summary: true
+  require_original_angle: true
+  require_examples: true
+  require_internal_links: true
+  require_faq: true
+  require_schema_recommendation: true
+  forbid_unverifiable_claims: true
+  forbid_generic_intro: true
+
+seo:
+  max_title_length: 60
+  max_meta_description_length: 160
+  require_h1: true
+  require_canonical: true
+  require_indexable: true
+
+geo:
+  require_entity_definition: true
+  require_direct_answers: true
+  require_comparison_context: true
+  require_citable_passages: true
+  require_author_or_brand_context: true
+  require_updated_at: true
