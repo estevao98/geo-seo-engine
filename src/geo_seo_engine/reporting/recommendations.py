@@ -2,6 +2,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from geo_seo_engine.reporting.severity import classify_issue
+
+
+_SEVERITY_ORDER = {
+    "critical": 0,
+    "high": 1,
+    "medium": 2,
+    "low": 3,
+}
+
 
 @dataclass(frozen=True)
 class IssueRecommendation:
@@ -117,4 +127,8 @@ def recommend_issue(issue: str) -> IssueRecommendation:
 
 
 def recommend_issues(issues: list[str]) -> list[IssueRecommendation]:
-    return [recommend_issue(issue) for issue in issues]
+    sorted_issues = sorted(
+        issues,
+        key=lambda issue: _SEVERITY_ORDER[classify_issue(issue).severity],
+    )
+    return [recommend_issue(issue) for issue in sorted_issues]

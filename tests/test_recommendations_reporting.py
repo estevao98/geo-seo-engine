@@ -27,6 +27,24 @@ def test_recommend_issues_returns_all_items():
     assert result[0].issue == "page.missing_canonical"
 
 
+def test_recommend_issues_sorts_by_severity():
+    result = recommend_issues(
+        [
+            "robots.robots_txt_4xx_assumed_no_restrictions",
+            "page.missing_meta_description",
+            "page.missing_canonical",
+            "page.meta_robots_noindex",
+        ]
+    )
+
+    assert [item.issue for item in result] == [
+        "page.meta_robots_noindex",
+        "page.missing_canonical",
+        "page.missing_meta_description",
+        "robots.robots_txt_4xx_assumed_no_restrictions",
+    ]
+
+
 def test_recommend_robots_4xx_assumed_no_restrictions():
     result = recommend_issue("robots.robots_txt_4xx_assumed_no_restrictions")
 
