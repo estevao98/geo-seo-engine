@@ -41,3 +41,17 @@ def test_cli_crawl_returns_valid_json(monkeypatch):
     assert data["pages"][0]["status_code"] == 200
     assert data["discovered_urls"] == []
     assert data["max_pages_reached"] is False
+
+
+def test_cli_crawl_rejects_invalid_format(monkeypatch):
+    import geo_seo_engine.cli as cli
+
+    def fake_crawl_site(url: str, options=None):
+        raise AssertionError("crawl should not run for invalid format")
+
+    monkeypatch.setattr(cli, "run_crawl_site", fake_crawl_site)
+
+    result = runner.invoke(app, ["crawl", "https://example.com", "--format", "table"])
+
+    assert result.exit_code != 0
+    assert "is not one of 'json'" in result.output.lower()

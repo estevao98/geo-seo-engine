@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import deque
 
-from geo_seo_engine.core import normalize_url
+from geo_seo_engine.core import is_same_site, normalize_url
 from geo_seo_engine.crawler.extract import extract_links
 from geo_seo_engine.crawler.models import CrawlOptions, CrawlPage, CrawlResult, SkippedUrl
 from geo_seo_engine.http import HttpClient
@@ -20,6 +20,17 @@ def crawl_site(
     client = http_client or HttpClient()
 
     result = CrawlResult(start_url=start_identity.normalized_url)
+
+    if active_options.allowed_hosts and not is_same_site(start_identity.normalized_url, allowed_hosts):
+        result.skipped_urls.append(
+            SkippedUrl(
+                url=start_identity.normalized_url,
+                reason="start_url_outside_allowed_hosts",
+            )
+        )
+        result.errors.append(f"{start_identity.normalized_url}: start_url_outside_allowed_hosts")
+        return result
+
     frontier = deque([(start_identity.normalized_url, 0, None)])
     queued_or_fetched = {start_identity.normalized_url}
     discovered_urls: set[str] = set()
@@ -29,9 +40,12 @@ def crawl_site(
         fetch_result = client.fetch(url)
         final_url = fetch_result.final_url or url
 
+        final_url_in_scope = False
+
         try:
             page_identity = normalize_url(final_url)
             page_normalized_url = page_identity.normalized_url
+            final_url_in_scope = is_same_site(page_normalized_url, allowed_hosts)
         except ValueError:
             page_normalized_url = url
 
@@ -40,7 +54,15 @@ def crawl_site(
 
         if page_error:
             result.errors.append(f"{url}: {page_error}")
-        elif _is_html(fetch_result.content_type):
+        elif not final_url_in_scope:
+            result.skipped_urls.append(
+                SkippedUrl(
+                    url=final_url,
+                    reason="final_url_outside_allowed_hosts",
+                    source_url=url,
+                )
+            )
+        elif fetch_result.ok and _is_html(fetch_result.content_type):
             links, skipped = extract_links(
                 fetch_result.text,
                 final_url,

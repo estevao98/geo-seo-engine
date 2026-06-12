@@ -22,11 +22,11 @@ class FakeHttpClient:
         )
 
 
-def html_response(url: str, html: str) -> FetchResult:
+def html_response(url: str, html: str, *, status_code: int = 200) -> FetchResult:
     return FetchResult(
         url=url,
         final_url=url,
-        status_code=200,
+        status_code=status_code,
         content_type="text/html; charset=utf-8",
         text=html,
     )
@@ -121,6 +121,110 @@ def test_crawler_ignores_unsupported_link_schemes():
     ]
 
 
+def test_crawler_skips_empty_fragment_and_ftp_hrefs():
+    client = FakeHttpClient(
+        {
+            "https://example.com/": html_response(
+                "https://example.com/",
+                """
+                <a href="">Empty</a>
+                <a>Missing</a>
+                <a href="#section">Fragment</a>
+                <a href="ftp://example.com/file">FTP</a>
+                """,
+            ),
+        }
+    )
+
+    result = crawl_site("https://example.com", http_client=client)
+
+    assert client.requested_urls == ["https://example.com/"]
+    assert result.discovered_urls == []
+    assert [skip.reason for skip in result.skipped_urls] == [
+        "empty_href",
+        "empty_href",
+        "fragment_only",
+        "unsupported_scheme:ftp",
+    ]
+
+
+def test_crawler_rejects_invalid_start_url():
+    client = FakeHttpClient({})
+
+    try:
+        crawl_site("not a url", http_client=client)
+    except ValueError as exc:
+        assert "raw_url cannot contain whitespace" in str(exc)
+    else:
+        raise AssertionError("Expected invalid start URL to raise ValueError")
+
+    assert client.requested_urls == []
+
+
+def test_crawler_does_not_fetch_start_url_outside_explicit_allowed_hosts():
+    client = FakeHttpClient(
+        {
+            "https://example.com/": html_response("https://example.com/", ""),
+        }
+    )
+
+    result = crawl_site(
+        "https://example.com",
+        options=CrawlOptions(allowed_hosts=["allowed.example"]),
+        http_client=client,
+    )
+
+    assert client.requested_urls == []
+    assert result.pages == []
+    assert result.skipped_urls[0].url == "https://example.com/"
+    assert result.skipped_urls[0].reason == "start_url_outside_allowed_hosts"
+    assert result.errors == ["https://example.com/: start_url_outside_allowed_hosts"]
+
+
+def test_crawler_does_not_extract_links_after_external_redirect():
+    client = FakeHttpClient(
+        {
+            "https://example.com/": FetchResult(
+                url="https://example.com/",
+                final_url="https://external.example/landing",
+                status_code=200,
+                content_type="text/html; charset=utf-8",
+                text='<a href="https://example.com/internal">Internal</a>',
+            ),
+            "https://example.com/internal": html_response("https://example.com/internal", ""),
+        }
+    )
+
+    result = crawl_site("https://example.com", http_client=client)
+
+    assert client.requested_urls == ["https://example.com/"]
+    assert result.pages[0].final_url == "https://external.example/landing"
+    assert result.pages[0].links_found == 0
+    assert result.discovered_urls == []
+    assert result.skipped_urls[0].url == "https://external.example/landing"
+    assert result.skipped_urls[0].reason == "final_url_outside_allowed_hosts"
+
+
+def test_crawler_does_not_extract_links_from_html_404():
+    client = FakeHttpClient(
+        {
+            "https://example.com/": html_response(
+                "https://example.com/",
+                '<a href="/hidden">Hidden</a>',
+                status_code=404,
+            ),
+            "https://example.com/hidden": html_response("https://example.com/hidden", ""),
+        }
+    )
+
+    result = crawl_site("https://example.com", http_client=client)
+
+    assert client.requested_urls == ["https://example.com/"]
+    assert result.pages[0].status_code == 404
+    assert result.pages[0].links_found == 0
+    assert result.discovered_urls == []
+
+
 def test_crawler_deduplicates_normalized_urls():
     client = FakeHttpClient(
         {
@@ -187,6 +291,7 @@ def test_crawler_respects_max_depth():
     )
 
     assert client.requested_urls == ["https://example.com/", "https://example.com/a"]
+    assert "https://example.com/b" in [link.normalized_url for link in result.discovered_urls]
     assert any(skip.url == "https://example.com/b" for skip in result.skipped_urls)
     assert any(skip.reason == "max_depth_exceeded" for skip in result.skipped_urls)
 
