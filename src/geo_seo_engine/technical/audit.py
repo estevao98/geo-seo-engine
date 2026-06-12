@@ -20,13 +20,21 @@ def run_technical_audit(
     findings: list[TechnicalAuditFinding] = []
 
     for page in inventory.urls:
-        if page.status_code != 200:
-            findings.append(_status_not_200_finding(page))
-
         if page.has_error:
             findings.append(_fetch_error_finding(page))
+            continue
 
-        if audit_options.flag_non_html and not page.is_html:
+        if page.status_code != 200 and not (
+            page.is_redirected and 300 <= page.status_code < 400
+        ):
+            findings.append(_status_not_200_finding(page))
+
+        if (
+            audit_options.flag_non_html
+            and page.status_code == 200
+            and page.content_type
+            and not page.is_html
+        ):
             findings.append(_non_html_finding(page))
 
         if audit_options.flag_redirects and page.is_redirected:
@@ -130,8 +138,8 @@ def _fetch_error_finding(page: InventoryUrl) -> TechnicalAuditFinding:
 def _non_html_finding(page: InventoryUrl) -> TechnicalAuditFinding:
     return TechnicalAuditFinding(
         id="technical.non_html_url",
-        title="Discovered URL is not HTML",
-        severity=Severity.LOW,
+        title="Discovered non-HTML URL inventory signal",
+        severity=Severity.INFO,
         category=IssueCategory.TECHNICAL,
         url=page.url,
         evidence=[
@@ -143,8 +151,9 @@ def _non_html_finding(page: InventoryUrl) -> TechnicalAuditFinding:
             ),
         ],
         risk=(
-            "Non-HTML URLs discovered in the crawl can dilute crawl budget analysis if they "
-            "are not intentional content assets."
+            "This is an inventory signal, not a critical technical error. Non-HTML URLs "
+            "may be intentional assets, but they can add noise to crawl analysis when they "
+            "are not expected."
         ),
         recommendation=(
             "Confirm whether this URL should be linked from crawlable pages or excluded from "
@@ -217,8 +226,8 @@ def _deep_page_finding(page: InventoryUrl, max_depth_warning: int) -> TechnicalA
 def _zero_links_finding(page: InventoryUrl) -> TechnicalAuditFinding:
     return TechnicalAuditFinding(
         id="technical.zero_links_found",
-        title="HTML page has zero links found",
-        severity=Severity.MEDIUM,
+        title="Crawler extracted zero static links",
+        severity=Severity.LOW,
         category=IssueCategory.CRAWLABILITY,
         url=page.url,
         evidence=[
@@ -230,12 +239,13 @@ def _zero_links_finding(page: InventoryUrl) -> TechnicalAuditFinding:
             ),
         ],
         risk=(
-            "A page with no discovered links can behave like a dead end in the crawl and may "
-            "not support discovery of related content."
+            "The crawler extracted zero static links from this HTML response. This can be "
+            "valid for some pages, but may also indicate client-side-only navigation or a "
+            "page that contributes little to static discovery."
         ),
         recommendation=(
-            "Add useful navigation or contextual links when the page is meant to participate "
-            "in the site structure."
+            "Verify whether static anchors are expected for this page before treating it as "
+            "a crawlability problem."
         ),
         next_action=f"Inspect rendered links or HTML anchors on {page.url}.",
         confidence=0.9,
@@ -280,20 +290,34 @@ def _max_pages_reached_finding(inventory: InventoryResult) -> TechnicalAuditFind
 
 def _high_skipped_urls_finding(inventory: InventoryResult, threshold: int) -> TechnicalAuditFinding:
     skipped_count = inventory.summary.skipped_urls
+    reason_counts = Counter(skipped.reason for skipped in inventory.skipped_urls)
+    reason_summary = ", ".join(
+        f"{reason}={count}" for reason, count in sorted(reason_counts.items())
+    )
+    evidence = [
+        Evidence(
+            source="inventory.summary",
+            value=skipped_count,
+            expected=threshold,
+            observed=skipped_count,
+        ),
+    ]
+    if reason_summary:
+        evidence.append(
+            Evidence(
+                source="inventory.skipped_urls.reason_counts",
+                value=reason_summary,
+                observed=reason_summary,
+            )
+        )
+
     return TechnicalAuditFinding(
         id="technical.high_skipped_urls",
         title="High number of skipped URLs",
         severity=Severity.MEDIUM,
         category=IssueCategory.CRAWLABILITY,
         url=None,
-        evidence=[
-            Evidence(
-                source="inventory.summary",
-                value=skipped_count,
-                expected=threshold,
-                observed=skipped_count,
-            ),
-        ],
+        evidence=evidence,
         risk=(
             "Many skipped URLs can indicate noisy templates, external leakage, overly broad "
             "discovery, or crawl scope rules that need review."

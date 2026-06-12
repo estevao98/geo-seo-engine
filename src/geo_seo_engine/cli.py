@@ -319,6 +319,36 @@ def audit_technical(
         help="Skipped URL count above which the audit emits a warning.",
         min=0,
     ),
+    flag_non_html: bool = typer.Option(
+        True,
+        "--non-html-findings/--no-non-html-findings",
+        help="Emit inventory findings for discovered non-HTML URLs.",
+    ),
+    flag_redirects: bool = typer.Option(
+        True,
+        "--redirect-findings/--no-redirect-findings",
+        help="Emit findings for discovered URLs that redirect.",
+    ),
+    flag_zero_links: bool = typer.Option(
+        True,
+        "--zero-links-findings/--no-zero-links-findings",
+        help="Emit findings when the crawler extracts zero static links.",
+    ),
+    allowed_hosts: list[str] | None = typer.Option(
+        None,
+        "--allowed-host",
+        help="Allowed host. Defaults to the start URL host. Can be repeated.",
+    ),
+    include_patterns: list[str] | None = typer.Option(
+        None,
+        "--include-pattern",
+        help="fnmatch pattern for normalized URL or path. Can be repeated.",
+    ),
+    exclude_patterns: list[str] | None = typer.Option(
+        None,
+        "--exclude-pattern",
+        help="fnmatch pattern for normalized URL or path. Can be repeated.",
+    ),
     output_format: Literal["json"] = typer.Option(
         "json",
         "--format",
@@ -335,7 +365,13 @@ def audit_technical(
     """Crawl a site inventory and emit technical SEO/GEO findings."""
     crawl_result = run_crawl_site(
         url,
-        options=CrawlOptions(max_pages=max_pages, max_depth=max_depth),
+        options=CrawlOptions(
+            allowed_hosts=allowed_hosts or [],
+            max_pages=max_pages,
+            max_depth=max_depth,
+            include_patterns=include_patterns or [],
+            exclude_patterns=exclude_patterns or [],
+        ),
     )
     inventory_result = run_build_url_inventory(crawl_result)
     result = run_technical_audit(
@@ -343,6 +379,9 @@ def audit_technical(
         options=TechnicalAuditOptions(
             max_depth_warning=max_depth_warning,
             high_skipped_urls_warning=high_skipped_urls_warning,
+            flag_non_html=flag_non_html,
+            flag_redirects=flag_redirects,
+            flag_zero_links=flag_zero_links,
         ),
     )
 
