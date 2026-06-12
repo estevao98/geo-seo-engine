@@ -13,6 +13,7 @@ from geo_seo_engine.config.loader import DEFAULT_PROJECT_CONFIG_YAML
 from geo_seo_engine.config.loader import validate_project_config as run_config_validation
 from geo_seo_engine.crawler import CrawlOptions, crawl_site as run_crawl_site
 from geo_seo_engine.inventory import build_url_inventory as run_build_url_inventory
+from geo_seo_engine.technical import TechnicalAuditOptions, run_technical_audit
 from geo_seo_engine.analyzers.sitemap_audit import audit_sitemap as run_sitemap_audit
 from geo_seo_engine.analyzers.site_audit import audit_site as run_site_audit
 from geo_seo_engine.reporting.markdown import render_site_markdown
@@ -287,6 +288,71 @@ def inventory(
 
     if output_format == "json":
         rendered = json.dumps(result.model_dump(mode="json"), ensure_ascii=False, indent=2)
+        _write_or_print(rendered, output, is_json=True)
+        return
+
+
+@app.command("audit-technical")
+def audit_technical(
+    url: str,
+    max_pages: int = typer.Option(
+        25,
+        "--max-pages",
+        help="Maximum number of pages to fetch before auditing the inventory.",
+        min=1,
+    ),
+    max_depth: int = typer.Option(
+        2,
+        "--max-depth",
+        help="Maximum link depth to enqueue. The start URL is depth 0.",
+        min=0,
+    ),
+    max_depth_warning: int = typer.Option(
+        3,
+        "--max-depth-warning",
+        help="Depth above which a fetched URL receives a technical warning.",
+        min=0,
+    ),
+    high_skipped_urls_warning: int = typer.Option(
+        25,
+        "--high-skipped-urls-warning",
+        help="Skipped URL count above which the audit emits a warning.",
+        min=0,
+    ),
+    output_format: Literal["json"] = typer.Option(
+        "json",
+        "--format",
+        "-f",
+        help="Output format: json.",
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Write output to a file.",
+    ),
+) -> None:
+    """Crawl a site inventory and emit technical SEO/GEO findings."""
+    crawl_result = run_crawl_site(
+        url,
+        options=CrawlOptions(max_pages=max_pages, max_depth=max_depth),
+    )
+    inventory_result = run_build_url_inventory(crawl_result)
+    result = run_technical_audit(
+        inventory_result,
+        options=TechnicalAuditOptions(
+            max_depth_warning=max_depth_warning,
+            high_skipped_urls_warning=high_skipped_urls_warning,
+        ),
+    )
+
+    if output_format == "json":
+        rendered = json.dumps(
+            result.model_dump(mode="json"),
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
         _write_or_print(rendered, output, is_json=True)
         return
 
