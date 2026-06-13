@@ -5,6 +5,11 @@ from pydantic import Field
 from geo_seo_engine.core.models import CoreModel, Evidence, IssueCategory, Severity
 
 
+class ImageSrcsetCandidate(CoreModel):
+    raw_url: str
+    descriptor: str | None = None
+
+
 class ImageResource(CoreModel):
     page_url: str
     raw_src: str
@@ -16,6 +21,8 @@ class ImageResource(CoreModel):
     height: str | None = None
     loading: str | None = None
     srcset: str | None = None
+    srcset_candidates: list[ImageSrcsetCandidate] = Field(default_factory=list)
+    is_decorative: bool = False
     is_data_uri: bool = False
     is_external: bool = False
 
@@ -67,6 +74,7 @@ class ImageAuditSummary(CoreModel):
     missing_dimension_images: int = Field(default=0, ge=0)
     external_images: int = Field(default=0, ge=0)
     data_uri_images: int = Field(default=0, ge=0)
+    decorative_images: int = Field(default=0, ge=0)
 
 
 class ImageAuditResult(CoreModel):

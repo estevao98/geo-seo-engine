@@ -1,3 +1,5 @@
+import geo_seo_engine.images.extract as image_extract
+
 from geo_seo_engine.images import extract_images_from_html
 
 
@@ -54,6 +56,21 @@ def test_distinguishes_missing_alt_from_empty_alt():
     assert missing_alt.alt is None
     assert empty_alt.has_alt_attribute is True
     assert empty_alt.alt == ""
+    assert empty_alt.is_decorative is False
+
+
+def test_distinguishes_decorative_empty_alt():
+    result = extract_images_from_html(
+        """
+        <img src="/icon.svg" alt="" role="presentation">
+        <img src="/hidden.svg" alt="" aria-hidden="true">
+        """,
+        "https://example.com/",
+    )
+
+    assert [image.has_alt_attribute for image in result.images] == [True, True]
+    assert [image.alt for image in result.images] == ["", ""]
+    assert [image.is_decorative for image in result.images] == [True, True]
 
 
 def test_preserves_width_and_height():
@@ -84,6 +101,34 @@ def test_preserves_srcset():
     assert result.images[0].srcset == "/image.png 1x, /image@2x.png 2x"
 
 
+def test_parses_img_srcset_candidates_without_normalizing_descriptors():
+    result = extract_images_from_html(
+        '<img src="/image.png" srcset="/small.jpg 480w,  /large.jpg 960w, /retina.jpg 2x" alt="Image">',
+        "https://example.com/",
+    )
+
+    assert [(candidate.raw_url, candidate.descriptor) for candidate in result.images[0].srcset_candidates] == [
+        ("/small.jpg", "480w"),
+        ("/large.jpg", "960w"),
+        ("/retina.jpg", "2x"),
+    ]
+
+
+def test_picture_source_srcset_does_not_break_image_extraction():
+    result = extract_images_from_html(
+        """
+        <picture>
+          <source srcset="/hero.avif 1x, /hero@2x.avif 2x" type="image/avif">
+          <img src="/hero.jpg" alt="Hero">
+        </picture>
+        """,
+        "https://example.com/",
+    )
+
+    assert len(result.images) == 1
+    assert result.images[0].normalized_src == "https://example.com/hero.jpg"
+
+
 def test_detects_external_image_host():
     result = extract_images_from_html(
         '<img src="https://cdn.example.net/image.png" alt="CDN">',
@@ -103,3 +148,17 @@ def test_detects_data_uri():
     assert result.images[0].is_data_uri is True
     assert result.images[0].resolved_src == "data:image/png;base64,AAAA"
     assert result.images[0].normalized_src == "data:image/png;base64,AAAA"
+
+
+def test_data_uri_does_not_call_url_normalization(monkeypatch):
+    def fail_normalize_url(url: str):
+        raise AssertionError(f"normalize_url should not be called for data URI: {url}")
+
+    monkeypatch.setattr(image_extract, "normalize_url", fail_normalize_url)
+
+    result = extract_images_from_html(
+        '<img src="data:image/png;base64,AAAA" alt="Inline">',
+        "https://example.com/",
+    )
+
+    assert result.images[0].is_data_uri is True

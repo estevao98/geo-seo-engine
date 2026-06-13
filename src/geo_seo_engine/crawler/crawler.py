@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Callable
 
 from geo_seo_engine.core import is_same_site, normalize_url
 from geo_seo_engine.crawler.extract import extract_links
@@ -13,6 +14,7 @@ def crawl_site(
     options: CrawlOptions | None = None,
     *,
     http_client: HttpClient | None = None,
+    on_html_page: Callable[..., None] | None = None,
 ) -> CrawlResult:
     active_options = options or CrawlOptions()
     start_identity = normalize_url(start_url)
@@ -64,6 +66,16 @@ def crawl_site(
                 )
             )
         elif fetch_result.ok and _is_html(fetch_result.content_type):
+            if on_html_page:
+                on_html_page(
+                    page_url=url,
+                    normalized_url=requested_normalized_url,
+                    final_url=final_url,
+                    html=fetch_result.text,
+                    content_type=fetch_result.content_type,
+                    depth=depth,
+                )
+
             links, skipped = extract_links(
                 fetch_result.text,
                 final_url,

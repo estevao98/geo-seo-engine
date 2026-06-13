@@ -27,12 +27,30 @@ def test_generates_empty_alt_attribute_finding():
     assert "image.empty_alt_attribute" in _finding_ids(result)
 
 
+def test_empty_alt_with_presentation_role_does_not_generate_empty_alt_finding():
+    page = extract_images_from_html('<img src="/icon.svg" alt="" role="presentation">', "https://example.com/")
+
+    result = run_image_audit([page])
+
+    assert "image.empty_alt_attribute" not in _finding_ids(result)
+
+
+def test_empty_alt_with_aria_hidden_does_not_generate_empty_alt_finding():
+    page = extract_images_from_html('<img src="/icon.svg" alt="" aria-hidden="true">', "https://example.com/")
+
+    result = run_image_audit([page])
+
+    assert "image.empty_alt_attribute" not in _finding_ids(result)
+
+
 def test_generates_missing_dimensions_finding():
     page = extract_images_from_html('<img src="/image.png" alt="Image">', "https://example.com/")
 
     result = run_image_audit([page])
 
-    assert "image.missing_dimensions" in _finding_ids(result)
+    finding = _finding_by_id(result, "image.missing_dimensions")
+    assert finding.severity == "low"
+    assert "potential layout stability" in finding.risk
 
 
 def test_generates_external_host_finding_as_info():
@@ -46,6 +64,7 @@ def test_generates_external_host_finding_as_info():
     finding = _finding_by_id(result, "image.external_host")
 
     assert finding.severity == "info"
+    assert "CDN or asset host" in finding.risk
 
 
 def test_generates_data_uri_finding_as_info():

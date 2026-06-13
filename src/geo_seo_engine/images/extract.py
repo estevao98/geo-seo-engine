@@ -3,7 +3,7 @@ from __future__ import annotations
 from bs4 import BeautifulSoup
 
 from geo_seo_engine.core import is_same_site, normalize_url, resolve_url, url_host
-from geo_seo_engine.images.models import ImageResource, PageImageInventory, SkippedImage
+from geo_seo_engine.images.models import ImageResource, ImageSrcsetCandidate, PageImageInventory, SkippedImage
 
 
 def extract_images_from_html(
@@ -62,6 +62,8 @@ def extract_images_from_html(
                 height=_string_attribute(tag.get("height")),
                 loading=_string_attribute(tag.get("loading")),
                 srcset=_string_attribute(tag.get("srcset")),
+                srcset_candidates=_parse_srcset(_string_attribute(tag.get("srcset"))),
+                is_decorative=_is_decorative(tag),
                 is_data_uri=is_data_uri,
                 is_external=is_external,
             )
@@ -83,3 +85,51 @@ def _string_attribute(value) -> str | None:
     if value is None:
         return None
     return str(value)
+
+
+def _is_decorative(tag) -> bool:
+    role = _string_attribute(tag.get("role"))
+    aria_hidden = _string_attribute(tag.get("aria-hidden"))
+    return (role or "").strip().lower() in {"presentation", "none"} or (
+        aria_hidden or ""
+    ).strip().lower() == "true"
+
+
+def _parse_srcset(value: str | None) -> list[ImageSrcsetCandidate]:
+    if not value:
+        return []
+
+    candidates: list[ImageSrcsetCandidate] = []
+    index = 0
+    length = len(value)
+
+    while index < length:
+        while index < length and (value[index].isspace() or value[index] == ","):
+            index += 1
+        if index >= length:
+            break
+
+        url_start = index
+        if value[index:].lower().startswith("data:"):
+            while index < length and not value[index].isspace():
+                index += 1
+        else:
+            while index < length and not value[index].isspace() and value[index] != ",":
+                index += 1
+
+        raw_url = value[url_start:index].strip()
+        while index < length and value[index].isspace():
+            index += 1
+
+        descriptor_start = index
+        while index < length and value[index] != ",":
+            index += 1
+        descriptor = value[descriptor_start:index].strip() or None
+
+        if raw_url:
+            candidates.append(ImageSrcsetCandidate(raw_url=raw_url, descriptor=descriptor))
+
+        if index < length and value[index] == ",":
+            index += 1
+
+    return candidates

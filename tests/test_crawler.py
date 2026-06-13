@@ -42,6 +42,29 @@ def test_crawler_visits_start_url():
     assert result.pages[0].depth == 0
 
 
+def test_crawler_passes_html_to_optional_callback_without_fetching_images():
+    client = FakeHttpClient(
+        {
+            "https://example.com/": html_response(
+                "https://example.com/",
+                '<html><body><img src="/logo.png" alt="Logo"></body></html>',
+            )
+        }
+    )
+    captured_pages = []
+
+    def on_html_page(**kwargs):
+        captured_pages.append(kwargs)
+
+    crawl_site("https://example.com", http_client=client, on_html_page=on_html_page)
+
+    assert client.requested_urls == ["https://example.com/"]
+    assert all("/logo.png" not in requested_url for requested_url in client.requested_urls)
+    assert captured_pages[0]["page_url"] == "https://example.com/"
+    assert captured_pages[0]["normalized_url"] == "https://example.com/"
+    assert captured_pages[0]["html"] == '<html><body><img src="/logo.png" alt="Logo"></body></html>'
+
+
 def test_crawler_extracts_relative_internal_link():
     client = FakeHttpClient(
         {

@@ -30,7 +30,7 @@ def run_image_audit(
         for image in page.images:
             if audit_options.flag_missing_alt and not image.has_alt_attribute:
                 findings.append(_missing_alt_finding(image))
-            if audit_options.flag_empty_alt and image.has_alt_attribute and _is_empty(image.alt):
+            if _should_flag_empty_alt(image, audit_options):
                 findings.append(_empty_alt_finding(image))
             if audit_options.flag_missing_dimensions and _has_missing_dimensions(image):
                 findings.append(_missing_dimensions_finding(image))
@@ -154,8 +154,8 @@ def _missing_dimensions_finding(image: ImageResource) -> ImageAuditFinding:
             )
         ],
         risk=(
-            "Missing intrinsic dimensions can make layout stability harder to reason about, "
-            "although CSS or framework-level sizing may already handle this."
+            "Missing intrinsic dimensions can make potential layout stability harder to reason "
+            "about, although CSS or framework-level sizing may already handle this."
         ),
         recommendation="Declare width and height where the rendered image dimensions are known.",
         next_action=f"Check sizing strategy for {image.normalized_src} on {image.page_url}.",
@@ -181,8 +181,8 @@ def _external_host_finding(image: ImageResource) -> ImageAuditFinding:
             )
         ],
         risk=(
-            "External image hosts can be intentional, such as a CDN, but they add a dependency "
-            "outside the audited crawl scope."
+            "External image hosts can be intentional, such as a CDN or asset host, but they add "
+            "a dependency outside the audited crawl scope."
         ),
         recommendation="Confirm the external host is intentional, reliable, and covered by your asset policy.",
         next_action=f"Validate ownership or CDN policy for {image.normalized_src}.",
@@ -220,7 +220,7 @@ def _data_uri_finding(image: ImageResource) -> ImageAuditFinding:
 def _missing_lazy_loading_finding(image: ImageResource) -> ImageAuditFinding:
     return ImageAuditFinding(
         id="image.missing_lazy_loading",
-        title="Image does not declare loading='lazy'",
+        title="Image may be a lazy-loading candidate",
         severity=Severity.INFO,
         category=IssueCategory.PERFORMANCE,
         page_url=image.page_url,
@@ -261,15 +261,24 @@ def _build_summary(
         by_category=dict(sorted(by_category.items())),
         missing_src_images=sum(1 for skipped in skipped_images if skipped.reason == "missing_src"),
         missing_alt_images=sum(1 for image in images if not image.has_alt_attribute),
-        empty_alt_images=sum(1 for image in images if image.has_alt_attribute and _is_empty(image.alt)),
+        empty_alt_images=sum(1 for image in images if _is_empty_alt_non_decorative(image)),
         missing_dimension_images=sum(1 for image in images if _has_missing_dimensions(image)),
         external_images=sum(1 for image in images if image.is_external),
         data_uri_images=sum(1 for image in images if image.is_data_uri),
+        decorative_images=sum(1 for image in images if image.is_decorative),
     )
 
 
 def _is_empty(value: str | None) -> bool:
     return value is not None and value.strip() == ""
+
+
+def _should_flag_empty_alt(image: ImageResource, audit_options: ImageAuditOptions) -> bool:
+    return audit_options.flag_empty_alt and _is_empty_alt_non_decorative(image)
+
+
+def _is_empty_alt_non_decorative(image: ImageResource) -> bool:
+    return image.has_alt_attribute and _is_empty(image.alt) and not image.is_decorative
 
 
 def _has_missing_dimensions(image: ImageResource) -> bool:
