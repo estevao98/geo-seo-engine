@@ -15,6 +15,7 @@ from geo_seo_engine.core import normalize_url
 from geo_seo_engine.crawler import CrawlOptions, crawl_site as run_crawl_site
 from geo_seo_engine.images import extract_images_from_html, run_image_audit
 from geo_seo_engine.inventory import build_url_inventory as run_build_url_inventory
+from geo_seo_engine.social import extract_social_metadata_from_html, run_social_metadata_audit
 from geo_seo_engine.technical import TechnicalAuditOptions, run_technical_audit
 from geo_seo_engine.analyzers.sitemap_audit import audit_sitemap as run_sitemap_audit
 from geo_seo_engine.analyzers.site_audit import audit_site as run_site_audit
@@ -395,6 +396,100 @@ def audit_images(
 
     result = run_image_audit(
         page_inventories,
+        start_url=crawl_result.start_url,
+    )
+
+    if output_format == "json":
+        rendered = json.dumps(
+            result.model_dump(mode="json"),
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        _write_or_print(rendered, output, is_json=True)
+        return
+
+
+@app.command("audit-social")
+def audit_social(
+    url: str,
+    max_pages: int = typer.Option(
+        25,
+        "--max-pages",
+        help="Maximum number of pages to fetch before auditing social metadata.",
+        min=1,
+    ),
+    max_depth: int = typer.Option(
+        2,
+        "--max-depth",
+        help="Maximum link depth to enqueue. The start URL is depth 0.",
+        min=0,
+    ),
+    allowed_hosts: list[str] | None = typer.Option(
+        None,
+        "--allowed-host",
+        help="Allowed host. Defaults to the start URL host. Can be repeated.",
+    ),
+    include_patterns: list[str] | None = typer.Option(
+        None,
+        "--include-pattern",
+        help="fnmatch pattern for normalized URL or path. Can be repeated.",
+    ),
+    exclude_patterns: list[str] | None = typer.Option(
+        None,
+        "--exclude-pattern",
+        help="fnmatch pattern for normalized URL or path. Can be repeated.",
+    ),
+    output_format: Literal["json"] = typer.Option(
+        "json",
+        "--format",
+        "-f",
+        help="Output format: json.",
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Write output to a file.",
+    ),
+) -> None:
+    """Crawl HTML pages and audit static Open Graph and Twitter/X metadata."""
+    crawl_options = CrawlOptions(
+        allowed_hosts=allowed_hosts or [],
+        max_pages=max_pages,
+        max_depth=max_depth,
+        include_patterns=include_patterns or [],
+        exclude_patterns=exclude_patterns or [],
+    )
+    effective_allowed_hosts = allowed_hosts or [_normalized_host(url)]
+    page_metadata = []
+
+    def collect_social_metadata_from_html(
+        page_url: str,
+        normalized_url: str,
+        final_url: str,
+        html: str,
+        content_type: str | None,
+        depth: int,
+    ) -> None:
+        del normalized_url, content_type, depth
+        metadata_page_url = final_url or page_url
+        page_metadata.append(
+            extract_social_metadata_from_html(
+                html,
+                metadata_page_url,
+                allowed_hosts=effective_allowed_hosts,
+            )
+        )
+
+    crawl_result = run_crawl_site(
+        url,
+        options=crawl_options,
+        on_html_page=collect_social_metadata_from_html,
+    )
+
+    result = run_social_metadata_audit(
+        page_metadata,
         start_url=crawl_result.start_url,
     )
 
