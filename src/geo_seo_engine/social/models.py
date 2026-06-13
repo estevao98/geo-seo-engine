@@ -36,6 +36,7 @@ class PageSocialMetadata(CoreModel):
     twitter: dict[str, str] = Field(default_factory=dict)
     duplicates: dict[str, int] = Field(default_factory=dict)
     image_references: list[SocialImageReference] = Field(default_factory=list)
+    used_open_graph_fallback_fields: list[str] = Field(default_factory=list)
 
 
 class SocialAuditOptions(CoreModel):
@@ -45,6 +46,7 @@ class SocialAuditOptions(CoreModel):
     flag_duplicates: bool = True
     flag_relative_image_url: bool = True
     flag_external_image_host: bool = True
+    allow_twitter_og_fallback: bool = True
 
 
 class SocialAuditFinding(CoreModel):

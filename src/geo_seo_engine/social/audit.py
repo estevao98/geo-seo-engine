@@ -19,6 +19,23 @@ OPEN_GRAPH_REQUIRED = {
     "og:image": Severity.MEDIUM,
     "og:url": Severity.LOW,
 }
+OPEN_GRAPH_SINGLETON_KEYS = {
+    "og:title",
+    "og:description",
+    "og:type",
+    "og:url",
+    "og:site_name",
+    "og:locale",
+}
+TWITTER_SINGLETON_KEYS = {
+    "twitter:card",
+    "twitter:title",
+    "twitter:description",
+    "twitter:image",
+    "twitter:site",
+    "twitter:creator",
+}
+SINGLETON_METADATA_KEYS = OPEN_GRAPH_SINGLETON_KEYS | TWITTER_SINGLETON_KEYS
 TWITTER_REQUIRED = ("twitter:card", "twitter:title", "twitter:description", "twitter:image")
 TWITTER_FALLBACKS = {
     "twitter:title": "og:title",
@@ -36,14 +53,21 @@ def run_social_metadata_audit(
     findings: list[SocialAuditFinding] = []
 
     for page in pages:
+        page.used_open_graph_fallback_fields = []
+
         if audit_options.flag_open_graph:
             for metadata_key, severity in OPEN_GRAPH_REQUIRED.items():
-                if not _has_value(page, metadata_key):
+                if not _has_tag(page, metadata_key):
                     findings.append(_missing_open_graph_finding(page, metadata_key, severity))
 
         if audit_options.flag_twitter:
             for metadata_key in TWITTER_REQUIRED:
-                if not _has_value(page, metadata_key):
+                if _has_value(page, metadata_key):
+                    continue
+                if _uses_open_graph_fallback(page, metadata_key, audit_options):
+                    page.used_open_graph_fallback_fields.append(metadata_key)
+                    continue
+                if not _has_tag(page, metadata_key):
                     findings.append(_missing_twitter_finding(page, metadata_key))
 
         if audit_options.flag_empty_content:
@@ -52,8 +76,8 @@ def run_social_metadata_audit(
                     findings.append(_empty_content_finding(tag))
 
         if audit_options.flag_duplicates:
-            for metadata_key, count in page.duplicates.items():
-                findings.append(_duplicate_tag_finding(page, metadata_key, count))
+            for metadata_key, tags in _conflicting_singleton_duplicates(page).items():
+                findings.append(_duplicate_tag_finding(page, metadata_key, tags))
 
         for image in page.image_references:
             if image.is_invalid:
@@ -101,13 +125,11 @@ def _missing_open_graph_finding(
 
 
 def _missing_twitter_finding(page: PageSocialMetadata, metadata_key: str) -> SocialAuditFinding:
-    fallback_key = TWITTER_FALLBACKS.get(metadata_key)
-    has_fallback = bool(fallback_key and _has_value(page, fallback_key))
     field_name = metadata_key.removeprefix("twitter:")
     return SocialAuditFinding(
         id=f"social.missing_twitter_{field_name}",
         title=f"Page is missing {metadata_key}",
-        severity=Severity.INFO if has_fallback else Severity.LOW,
+        severity=Severity.LOW,
         category=IssueCategory.CONTENT,
         page_url=page.page_url,
         metadata_key=metadata_key,
@@ -116,16 +138,15 @@ def _missing_twitter_finding(page: PageSocialMetadata, metadata_key: str) -> Soc
                 source="html.meta",
                 selector=f"meta[name='{metadata_key}']",
                 expected="non-empty content attribute",
-                observed=f"missing; fallback={fallback_key}" if has_fallback else "missing",
+                observed="missing",
             )
         ],
         risk=(
-            "Twitter/X previews can often fall back to Open Graph values, but explicit card "
-            "metadata makes the intended preview easier to verify."
+            "Twitter/X previews may have less explicit title, description, image, or card context."
         ),
         recommendation=f"Add {metadata_key} when a Twitter/X-specific preview is needed.",
         next_action=f"Compare Twitter/X preview metadata with Open Graph metadata on {page.page_url}.",
-        confidence=0.85 if has_fallback else 0.9,
+        confidence=0.9,
     )
 
 
@@ -156,11 +177,12 @@ def _empty_content_finding(tag: SocialMetaTag) -> SocialAuditFinding:
 def _duplicate_tag_finding(
     page: PageSocialMetadata,
     metadata_key: str,
-    count: int,
+    tags: list[SocialMetaTag],
 ) -> SocialAuditFinding:
+    distinct_values = sorted({tag.content for tag in tags})
     return SocialAuditFinding(
         id="social.duplicate_meta_tag",
-        title="Social meta tag is duplicated",
+        title="Social meta tag has conflicting duplicates",
         severity=Severity.LOW,
         category=IssueCategory.TECHNICAL,
         page_url=page.page_url,
@@ -169,12 +191,13 @@ def _duplicate_tag_finding(
             Evidence(
                 source="html.meta",
                 selector=f"meta[property='{metadata_key}'], meta[name='{metadata_key}']",
-                expected="one tag per metadata key",
-                observed=count,
+                value=" | ".join(distinct_values),
+                expected="one value for singleton social metadata keys",
+                observed=f"{len(tags)} tags with {len(distinct_values)} distinct values",
             )
         ],
         risk="Duplicate social meta tags can make preview behavior ambiguous across parsers.",
-        recommendation="Keep one canonical tag for each social metadata key unless duplication is intentional.",
+        recommendation="Keep one canonical value for each singleton social metadata key.",
         next_action=f"Consolidate duplicate {metadata_key} tags on {page.page_url}.",
         confidence=0.9,
     )
@@ -265,12 +288,12 @@ def _build_summary(
         findings_total=len(findings),
         by_severity=dict(sorted(by_severity.items())),
         by_category=dict(sorted(by_category.items())),
-        pages_missing_og_title=sum(1 for page in pages if not _has_value(page, "og:title")),
-        pages_missing_og_description=sum(1 for page in pages if not _has_value(page, "og:description")),
-        pages_missing_og_image=sum(1 for page in pages if not _has_value(page, "og:image")),
-        pages_missing_og_url=sum(1 for page in pages if not _has_value(page, "og:url")),
-        pages_missing_twitter_card=sum(1 for page in pages if not _has_value(page, "twitter:card")),
-        duplicate_tag_pages=sum(1 for page in pages if page.duplicates),
+        pages_missing_og_title=sum(1 for page in pages if not _has_tag(page, "og:title")),
+        pages_missing_og_description=sum(1 for page in pages if not _has_tag(page, "og:description")),
+        pages_missing_og_image=sum(1 for page in pages if not _has_tag(page, "og:image")),
+        pages_missing_og_url=sum(1 for page in pages if not _has_tag(page, "og:url")),
+        pages_missing_twitter_card=sum(1 for page in pages if not _has_tag(page, "twitter:card")),
+        duplicate_tag_pages=sum(1 for page in pages if _conflicting_singleton_duplicates(page)),
         empty_content_tags=sum(1 for page in pages for tag in page.tags if tag.is_empty),
         external_social_images=sum(1 for image in images if image.is_external and not image.is_invalid),
         relative_social_images=sum(1 for image in images if image.is_relative and not image.is_invalid),
@@ -281,3 +304,29 @@ def _build_summary(
 def _has_value(page: PageSocialMetadata, metadata_key: str) -> bool:
     values = page.open_graph if metadata_key.startswith("og:") else page.twitter
     return bool((values.get(metadata_key) or "").strip())
+
+
+def _has_tag(page: PageSocialMetadata, metadata_key: str) -> bool:
+    return any(tag.key == metadata_key for tag in page.tags)
+
+
+def _uses_open_graph_fallback(
+    page: PageSocialMetadata,
+    metadata_key: str,
+    audit_options: SocialAuditOptions,
+) -> bool:
+    if not audit_options.allow_twitter_og_fallback:
+        return False
+    fallback_key = TWITTER_FALLBACKS.get(metadata_key)
+    return bool(fallback_key and _has_value(page, fallback_key))
+
+
+def _conflicting_singleton_duplicates(page: PageSocialMetadata) -> dict[str, list[SocialMetaTag]]:
+    duplicates: dict[str, list[SocialMetaTag]] = {}
+    for metadata_key in sorted(page.duplicates):
+        if metadata_key not in SINGLETON_METADATA_KEYS:
+            continue
+        tags = [tag for tag in page.tags if tag.key == metadata_key]
+        if len({tag.content for tag in tags}) > 1:
+            duplicates[metadata_key] = tags
+    return duplicates

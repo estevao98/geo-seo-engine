@@ -9,6 +9,7 @@ from geo_seo_engine.core import is_same_site, normalize_url, resolve_url, url_ho
 from geo_seo_engine.social.models import PageSocialMetadata, SocialImageReference, SocialMetaTag
 
 SOCIAL_IMAGE_KEYS = {"og:image", "twitter:image"}
+SUPPORTED_SOCIAL_IMAGE_SCHEMES = {"http", "https"}
 
 
 def extract_social_metadata_from_html(
@@ -95,6 +96,8 @@ def _build_image_reference(
             is_data_uri=True,
         )
 
+    has_whitespace = any(character.isspace() for character in raw_url)
+
     try:
         parsed = urlsplit(raw_url)
     except ValueError:
@@ -105,6 +108,14 @@ def _build_image_reference(
             is_invalid=True,
         )
     is_relative = not parsed.scheme and not parsed.netloc
+    if has_whitespace or (parsed.scheme and parsed.scheme.lower() not in SUPPORTED_SOCIAL_IMAGE_SCHEMES):
+        return SocialImageReference(
+            page_url=page_url,
+            metadata_key=tag.key,
+            raw_url=raw_url,
+            is_relative=is_relative,
+            is_invalid=True,
+        )
 
     try:
         resolved_url = resolve_url(raw_url, page_url)
