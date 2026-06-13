@@ -162,6 +162,26 @@ def test_private_host_is_blocked_when_policy_is_active():
     assert called is False
 
 
+def test_metadata_link_local_host_is_blocked_when_policy_is_active():
+    called = False
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal called
+        called = True
+        return httpx.Response(200, text="ok", request=request)
+
+    client = HttpClient(
+        HttpClientConfig(block_private_hosts=True, retries=0),
+        transport=httpx.MockTransport(handler),
+    )
+
+    result = client.fetch("http://169.254.169.254/")
+
+    assert result.status_code == 0
+    assert result.error == "blocked_private_host: 169.254.169.254"
+    assert called is False
+
+
 def test_private_host_is_not_blocked_when_policy_is_disabled():
     transport = httpx.MockTransport(
         lambda request: httpx.Response(200, text="local ok", request=request)

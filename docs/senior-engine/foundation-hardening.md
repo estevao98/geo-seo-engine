@@ -8,9 +8,15 @@ Este documento descreve os contratos atuais da fundacao do `geo-seo-engine` apos
 
 `src/geo_seo_engine/config/` valida configuracao de projeto. `ProjectConfig` centraliza `base_url`, hosts permitidos, URLs iniciais, padroes de inclusao/exclusao, politicas HTTP, crawler, privacidade e integracoes. A configuracao decide escopo, mas nao executa crawling nem requests.
 
+`ProjectConfig` valida a intencao de projeto, mas os comandos `geo crawl`, `geo inventory` e `geo audit-technical` ainda nao suportam integracao completa via `--config`. Hoje eles recebem escopo por flags explicitas como `--allowed-host`, `--include-pattern` e `--exclude-pattern`.
+
 `src/geo_seo_engine/http/` e a unica camada fundacional com permissao direta para fazer rede. `HttpClient` retorna `FetchResult` e concentra timeout, redirects, user-agent, limite de bytes, retries e bloqueio opcional de hosts privados. Testes de integracao devem injetar fake client ou `httpx.MockTransport`.
 
+`block_private_hosts` e uma politica critica de seguranca. Quando `--config` for integrado aos comandos de crawl/inventory/audit, essa politica deve ser aplicada antes de qualquer request. O hardening atual bloqueia IPs literais loopback, private, link-local, unspecified, reserved e multicast quando a politica esta ativa, mas nao resolve DNS rebinding.
+
 `src/geo_seo_engine/crawler/` descobre URLs internas com uma frontier FIFO limitada por `CrawlOptions`. Ele pode fazer rede apenas por meio de um `HttpClient` injetado ou criado internamente. O crawler extrai links estaticos de HTML, respeita hosts permitidos, deduplica URLs normalizadas e registra URLs ignoradas com motivo.
+
+`CrawlPage.normalized_url` representa a URL requisitada/descoberta normalizada. `CrawlPage.final_url` representa o destino final retornado pelo HTTP client apos redirects. Redirect externo deve preservar a URL original como pagina crawleada, registrar o destino externo em `final_url`, marcar skipped como `final_url_outside_allowed_hosts` e nao extrair links do HTML externo.
 
 `src/geo_seo_engine/inventory/` transforma `CrawlResult` em inventario. `build_url_inventory` nao faz rede; ele resume paginas ja buscadas em `InventoryResult`, status codes, content types, profundidade, erros, redirects e skipped URLs.
 
@@ -78,6 +84,14 @@ run_technical_audit(InventoryResult, TechnicalAuditOptions)
 `geo audit-technical URL` executa crawl, inventory e auditoria tecnica, retornando `TechnicalAuditResult` em JSON.
 
 Flags importantes incluem `--max-pages`, `--max-depth`, `--allowed-host`, `--include-pattern`, `--exclude-pattern`, `--max-depth-warning`, `--high-skipped-urls-warning`, `--no-non-html-findings`, `--no-redirect-findings` e `--no-zero-links-findings`.
+
+## Drift de configuracao conhecido
+
+`ProjectConfig` declara `respect_robots_txt`, `crawl_delay_seconds`, `privacy.redact_query_params` e `block_private_hosts` para expressar a intencao e validar shape de projeto. Nesta etapa, `geo crawl`, `geo inventory` e `geo audit-technical` ainda nao carregam `--config` completo.
+
+`robots.txt`, `crawl_delay_seconds` e redacao de parametros sensiveis de query ainda nao sao enforcement completo no crawler. Esses campos nao devem ser descritos como aplicados pela CLI ate a integracao de configuracao ser implementada e testada.
+
+`block_private_hosts` deve ser tratado como requisito de seguranca obrigatorio quando `--config` for conectado ao crawler/HTTP client. Risco restante: DNS rebinding e resolucao de hostnames privados ainda nao estao cobertos; o bloqueio atual cobre apenas hostnames locais conhecidos e IPs literais classificados por `ipaddress`.
 
 ## Politica de promessas
 

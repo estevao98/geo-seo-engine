@@ -272,6 +272,21 @@ def inventory(
         "-f",
         help="Output format: json.",
     ),
+    allowed_hosts: list[str] | None = typer.Option(
+        None,
+        "--allowed-host",
+        help="Allowed host. Defaults to the start URL host. Can be repeated.",
+    ),
+    include_patterns: list[str] | None = typer.Option(
+        None,
+        "--include-pattern",
+        help="fnmatch pattern for normalized URL or path. Can be repeated.",
+    ),
+    exclude_patterns: list[str] | None = typer.Option(
+        None,
+        "--exclude-pattern",
+        help="fnmatch pattern for normalized URL or path. Can be repeated.",
+    ),
     output: Path | None = typer.Option(
         None,
         "--output",
@@ -282,7 +297,13 @@ def inventory(
     """Crawl a site and summarize fetched URLs for later audits."""
     crawl_result = run_crawl_site(
         url,
-        options=CrawlOptions(max_pages=max_pages, max_depth=max_depth),
+        options=CrawlOptions(
+            allowed_hosts=allowed_hosts or [],
+            max_pages=max_pages,
+            max_depth=max_depth,
+            include_patterns=include_patterns or [],
+            exclude_patterns=exclude_patterns or [],
+        ),
     )
     result = run_build_url_inventory(crawl_result)
 

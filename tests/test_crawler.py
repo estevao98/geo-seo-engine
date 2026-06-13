@@ -198,6 +198,7 @@ def test_crawler_does_not_extract_links_after_external_redirect():
     result = crawl_site("https://example.com", http_client=client)
 
     assert client.requested_urls == ["https://example.com/"]
+    assert result.pages[0].normalized_url == "https://example.com/"
     assert result.pages[0].final_url == "https://external.example/landing"
     assert result.pages[0].links_found == 0
     assert result.discovered_urls == []

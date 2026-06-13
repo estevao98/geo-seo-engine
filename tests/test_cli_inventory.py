@@ -56,3 +56,34 @@ def test_cli_inventory_rejects_invalid_format(monkeypatch):
 
     assert result.exit_code != 0
     assert "is not one of 'json'" in result.output.lower()
+
+
+def test_cli_inventory_passes_scope_options_to_crawl_options(monkeypatch):
+    import geo_seo_engine.cli as cli
+
+    def fake_crawl_site(url: str, options=None):
+        assert url == "https://example.com"
+        assert options.allowed_hosts == ["example.com", "docs.example.com"]
+        assert options.include_patterns == ["/docs/*"]
+        assert options.exclude_patterns == ["/private/*"]
+        return CrawlResult(start_url="https://example.com/")
+
+    monkeypatch.setattr(cli, "run_crawl_site", fake_crawl_site)
+
+    result = runner.invoke(
+        app,
+        [
+            "inventory",
+            "https://example.com",
+            "--allowed-host",
+            "example.com",
+            "--allowed-host",
+            "docs.example.com",
+            "--include-pattern",
+            "/docs/*",
+            "--exclude-pattern",
+            "/private/*",
+        ],
+    )
+
+    assert result.exit_code == 0

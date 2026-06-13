@@ -83,3 +83,66 @@ def test_foundation_pipeline_crawls_inventory_and_audits_with_fake_http():
     assert audit.summary.total_findings == len(audit.findings)
     assert audit.summary.by_severity["high"] == 1
     assert audit.summary.by_category["crawlability"] == len(audit.findings)
+
+
+def test_foundation_pipeline_preserves_requested_url_for_internal_redirect():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if str(request.url) == "https://example.com/old":
+            return httpx.Response(
+                301,
+                headers={"location": "https://example.com/new"},
+                request=request,
+            )
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/html; charset=utf-8"},
+            text="<html><body><h1>New</h1></body></html>",
+            request=request,
+        )
+
+    client = HttpClient(transport=httpx.MockTransport(handler))
+
+    crawl_result = crawl_site(
+        "https://example.com/old",
+        options=CrawlOptions(max_pages=10, max_depth=2),
+        http_client=client,
+    )
+    inventory = build_url_inventory(crawl_result)
+    audit = run_technical_audit(inventory)
+
+    assert crawl_result.pages[0].normalized_url == "https://example.com/old"
+    assert crawl_result.pages[0].final_url == "https://example.com/new"
+    assert inventory.urls[0].is_redirected is True
+    assert any(finding.id == "technical.redirected_url" for finding in audit.findings)
+
+
+def test_foundation_pipeline_preserves_requested_url_for_external_redirect():
+    def handler(request: httpx.Request) -> httpx.Response:
+        if str(request.url) == "https://example.com/old":
+            return httpx.Response(
+                302,
+                headers={"location": "https://external.example/new"},
+                request=request,
+            )
+        return httpx.Response(
+            200,
+            headers={"content-type": "text/html; charset=utf-8"},
+            text='<a href="https://example.com/internal">Internal</a>',
+            request=request,
+        )
+
+    client = HttpClient(transport=httpx.MockTransport(handler))
+
+    crawl_result = crawl_site(
+        "https://example.com/old",
+        options=CrawlOptions(max_pages=10, max_depth=2),
+        http_client=client,
+    )
+
+    assert crawl_result.pages[0].url == "https://example.com/old"
+    assert crawl_result.pages[0].normalized_url == "https://example.com/old"
+    assert crawl_result.pages[0].final_url == "https://external.example/new"
+    assert crawl_result.pages[0].links_found == 0
+    assert crawl_result.discovered_urls == []
+    assert crawl_result.skipped_urls[0].url == "https://external.example/new"
+    assert crawl_result.skipped_urls[0].reason == "final_url_outside_allowed_hosts"

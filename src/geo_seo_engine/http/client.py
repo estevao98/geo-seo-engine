@@ -12,19 +12,6 @@ from geo_seo_engine.config.models import HttpConfig
 
 HttpClientConfig = HttpConfig
 
-_PRIVATE_IP_NETWORKS = tuple(
-    ipaddress.ip_network(network)
-    for network in (
-        "127.0.0.0/8",
-        "10.0.0.0/8",
-        "172.16.0.0/12",
-        "192.168.0.0/16",
-        "::1/128",
-        "fc00::/7",
-        "fe80::/10",
-    )
-)
-
 
 @dataclass(frozen=True)
 class FetchRequest:
@@ -160,9 +147,22 @@ def _private_host_error(url: str, block_private_hosts: bool) -> str | None:
     except ValueError:
         return None
 
-    if any(address in network for network in _PRIVATE_IP_NETWORKS):
+    if _is_blocked_ip_address(address):
         return f"blocked_private_host: {hostname}"
     return None
+
+
+def _is_blocked_ip_address(address: ipaddress.IPv4Address | ipaddress.IPv6Address) -> bool:
+    return any(
+        (
+            address.is_loopback,
+            address.is_private,
+            address.is_link_local,
+            address.is_unspecified,
+            address.is_reserved,
+            address.is_multicast,
+        )
+    )
 
 
 def _read_limited_body(response: httpx.Response, max_response_bytes: int) -> bytes:

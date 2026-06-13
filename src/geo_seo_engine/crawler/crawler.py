@@ -39,15 +39,16 @@ def crawl_site(
         url, depth, discovered_from = frontier.popleft()
         fetch_result = client.fetch(url)
         final_url = fetch_result.final_url or url
+        requested_normalized_url = _normalize_or_original(url)
 
         final_url_in_scope = False
 
         try:
             page_identity = normalize_url(final_url)
-            page_normalized_url = page_identity.normalized_url
-            final_url_in_scope = is_same_site(page_normalized_url, allowed_hosts)
+            final_normalized_url = page_identity.normalized_url
+            final_url_in_scope = is_same_site(final_normalized_url, allowed_hosts)
         except ValueError:
-            page_normalized_url = url
+            final_normalized_url = final_url
 
         links_found = 0
         page_error = fetch_result.error
@@ -99,13 +100,13 @@ def crawl_site(
                     )
                     continue
 
-                frontier.append((link.normalized_url, link.depth, page_normalized_url))
+                frontier.append((link.normalized_url, link.depth, requested_normalized_url))
                 queued_or_fetched.add(link.normalized_url)
 
         result.pages.append(
             CrawlPage(
                 url=url,
-                normalized_url=page_normalized_url,
+                normalized_url=requested_normalized_url,
                 final_url=final_url,
                 status_code=fetch_result.status_code,
                 depth=depth,
@@ -122,3 +123,10 @@ def crawl_site(
 
 def _is_html(content_type: str | None) -> bool:
     return "text/html" in (content_type or "").lower()
+
+
+def _normalize_or_original(url: str) -> str:
+    try:
+        return normalize_url(url).normalized_url
+    except ValueError:
+        return url
