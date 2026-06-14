@@ -16,6 +16,12 @@ from geo_seo_engine.crawler import CrawlOptions, crawl_site as run_crawl_site
 from geo_seo_engine.images import extract_images_from_html, run_image_audit
 from geo_seo_engine.i18n import extract_hreflang_from_html, run_hreflang_audit
 from geo_seo_engine.inventory import build_url_inventory as run_build_url_inventory
+from geo_seo_engine.rendering import (
+    StaticHtmlRenderer,
+    UnavailableRenderer,
+    extract_render_snapshot,
+    run_rendering_audit,
+)
 from geo_seo_engine.social import extract_social_metadata_from_html, run_social_metadata_audit
 from geo_seo_engine.technical import TechnicalAuditOptions, run_technical_audit
 from geo_seo_engine.analyzers.sitemap_audit import audit_sitemap as run_sitemap_audit
@@ -691,6 +697,111 @@ def audit_technical(
             flag_zero_links=flag_zero_links,
         ),
     )
+
+    if output_format == "json":
+        rendered = json.dumps(
+            result.model_dump(mode="json"),
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        _write_or_print(rendered, output, is_json=True)
+        return
+
+
+@app.command("audit-rendering")
+def audit_rendering(
+    url: str,
+    max_pages: int = typer.Option(
+        10,
+        "--max-pages",
+        help="Maximum number of pages to fetch before auditing rendering differences.",
+        min=1,
+    ),
+    max_depth: int = typer.Option(
+        1,
+        "--max-depth",
+        help="Maximum link depth to enqueue. The start URL is depth 0.",
+        min=0,
+    ),
+    allowed_hosts: list[str] | None = typer.Option(
+        None,
+        "--allowed-host",
+        help="Allowed host. Defaults to the start URL host. Can be repeated.",
+    ),
+    include_patterns: list[str] | None = typer.Option(
+        None,
+        "--include-pattern",
+        help="fnmatch pattern for normalized URL or path. Can be repeated.",
+    ),
+    exclude_patterns: list[str] | None = typer.Option(
+        None,
+        "--exclude-pattern",
+        help="fnmatch pattern for normalized URL or path. Can be repeated.",
+    ),
+    renderer_name: Literal["none", "static"] = typer.Option(
+        "none",
+        "--renderer",
+        help="Renderer to use. 'static' is a no-browser test mode; 'none' fails gracefully.",
+    ),
+    output_format: Literal["json"] = typer.Option(
+        "json",
+        "--format",
+        "-f",
+        help="Output format: json.",
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Write output to a file.",
+    ),
+) -> None:
+    """Optionally compare crawl-time HTML with rendered HTML signals."""
+    if renderer_name == "none":
+        typer.echo(
+            "No JavaScript renderer is configured. Pass --renderer static for static test mode or integrate a PageRenderer implementation.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    renderer = StaticHtmlRenderer() if renderer_name == "static" else UnavailableRenderer()
+    crawl_options = CrawlOptions(
+        allowed_hosts=allowed_hosts or [],
+        max_pages=max_pages,
+        max_depth=max_depth,
+        include_patterns=include_patterns or [],
+        exclude_patterns=exclude_patterns or [],
+    )
+    pages = []
+
+    def collect_render_snapshot(
+        page_url: str,
+        normalized_url: str,
+        final_url: str,
+        html: str,
+        content_type: str | None,
+        depth: int,
+    ) -> None:
+        del page_url, content_type, depth
+        snapshot_url = final_url or normalized_url
+        rendered_page = renderer.render(snapshot_url, html=html)
+        pages.append(
+            extract_render_snapshot(
+                snapshot_url,
+                html,
+                rendered_html=rendered_page.html,
+                render_error=rendered_page.error,
+                render_status=rendered_page.status,
+            )
+        )
+
+    crawl_result = run_crawl_site(
+        url,
+        options=crawl_options,
+        on_html_page=collect_render_snapshot,
+    )
+    result = run_rendering_audit(pages, start_url=crawl_result.start_url)
 
     if output_format == "json":
         rendered = json.dumps(
