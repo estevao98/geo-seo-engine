@@ -76,6 +76,28 @@ def test_does_not_flag_missing_self_reference_when_present():
     assert "hreflang.missing_self_reference" not in _finding_ids(result)
 
 
+def test_x_default_self_link_does_not_count_as_language_self_reference():
+    page = extract_hreflang_from_html(
+        '<head><link rel="alternate" hreflang="x-default" href="https://example.com/en/"></head>',
+        "https://example.com/en/",
+    )
+
+    result = run_hreflang_audit([page])
+
+    assert "hreflang.missing_self_reference" in _finding_ids(result)
+
+
+def test_language_self_link_counts_as_self_reference():
+    page = extract_hreflang_from_html(
+        '<head><link rel="alternate" hreflang="en" href="https://example.com/en/"></head>',
+        "https://example.com/en/",
+    )
+
+    result = run_hreflang_audit([page])
+
+    assert "hreflang.missing_self_reference" not in _finding_ids(result)
+
+
 def test_reciprocal_link_present_does_not_generate_finding():
     en = extract_hreflang_from_html(
         """
@@ -85,6 +107,31 @@ def test_reciprocal_link_present_does_not_generate_finding():
         </head>
         """,
         "https://example.com/en/",
+    )
+    pt = extract_hreflang_from_html(
+        """
+        <head>
+          <link rel="alternate" hreflang="pt-BR" href="https://example.com/pt-br/">
+          <link rel="alternate" hreflang="en" href="https://example.com/en/">
+        </head>
+        """,
+        "https://example.com/pt-br/",
+    )
+
+    result = run_hreflang_audit([en, pt])
+
+    assert "hreflang.missing_reciprocal" not in _finding_ids(result)
+
+
+def test_reciprocal_link_uses_normalized_urls_for_comparison():
+    en = extract_hreflang_from_html(
+        """
+        <head>
+          <link rel="alternate" hreflang="en" href="https://example.com/en">
+          <link rel="alternate" hreflang="pt-BR" href="https://example.com/pt-br/">
+        </head>
+        """,
+        "https://example.com/en",
     )
     pt = extract_hreflang_from_html(
         """
@@ -121,6 +168,24 @@ def test_reciprocal_link_missing_generates_finding():
 
     assert finding.page_url == "https://example.com/en/"
     assert result.summary.missing_reciprocal_links == 1
+
+
+def test_identical_duplicate_hreflang_value_generates_low_finding():
+    page = extract_hreflang_from_html(
+        """
+        <head>
+          <link rel="alternate" hreflang="en" href="https://example.com/en/">
+          <link rel="alternate" hreflang="en" href="https://example.com/en/">
+        </head>
+        """,
+        "https://example.com/en/",
+    )
+
+    result = run_hreflang_audit([page])
+    finding = _finding_by_id(result, "hreflang.duplicate_value")
+
+    assert finding.hreflang == "en"
+    assert finding.severity == "low"
 
 
 def test_x_default_info_behavior_is_optional():

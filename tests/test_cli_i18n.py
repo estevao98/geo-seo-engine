@@ -28,6 +28,7 @@ class FakeHttpClient:
                 "<html><head>"
                 f'<link rel="alternate" hreflang="{hreflang}" href="https://example.com{path}">'
                 f'<link rel="alternate" hreflang="{other_hreflang}" href="https://example.com{other_path}">'
+                '<link rel="alternate" hreflang="fr" href="https://example.com/fr/">'
                 "</head><body>"
                 '<a href="/pt-br/">PT</a>'
                 "</body></html>"
@@ -75,7 +76,7 @@ def test_cli_audit_hreflang_returns_valid_json(monkeypatch):
     data = json.loads(result.stdout)
     assert data["start_url"] == "https://example.com/en/"
     assert data["summary"]["total_pages"] == 2
-    assert data["summary"]["total_links"] == 4
+    assert data["summary"]["total_links"] == 6
     assert data["summary"]["missing_reciprocal_links"] == 0
     assert fake_http_client.requested_urls == ["https://example.com/en/", "https://example.com/pt-br/"]
     assert "https://example.com/fr/" not in fake_http_client.requested_urls

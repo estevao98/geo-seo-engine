@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 
+from geo_seo_engine.core import normalize_url
 from geo_seo_engine.core.models import Evidence, IssueCategory, Severity
 from geo_seo_engine.i18n.models import (
     HreflangAuditFinding,
@@ -21,7 +22,7 @@ def run_hreflang_audit(
 ) -> HreflangAuditResult:
     audit_options = options or HreflangAuditOptions()
     findings: list[HreflangAuditFinding] = []
-    crawled_pages = {page.page_url: page for page in pages}
+    crawled_pages = {_normalized_page_url(page.page_url): page for page in pages}
     missing_reciprocal_count = 0
 
     for page in pages:
@@ -227,7 +228,23 @@ def _missing_x_default_finding(page: PageHreflangInventory) -> HreflangAuditFind
 
 
 def _has_self_reference(page: PageHreflangInventory) -> bool:
-    return any(link.is_self_reference and not link.is_invalid_hreflang for link in page.links)
+    return any(
+        link.is_self_reference
+        and not link.is_x_default
+        and not link.is_invalid_hreflang
+        and not link.is_invalid_url
+        for link in page.links
+    )
+
+
+def _normalized_page_url(page_url: str) -> str:
+    try:
+        normalized_url = normalize_url(page_url).normalized_url
+    except ValueError:
+        return page_url
+    if normalized_url.endswith("/") and normalize_url(normalized_url).path != "/":
+        return normalized_url.rstrip("/")
+    return normalized_url
 
 
 def _should_flag_missing_reciprocal(
@@ -238,11 +255,12 @@ def _should_flag_missing_reciprocal(
 ) -> bool:
     if not options.flag_missing_reciprocal or link.is_self_reference or link.is_invalid_url or link.is_invalid_hreflang:
         return False
-    target_page = crawled_pages.get(link.normalized_url)
+    target_page = crawled_pages.get(_normalized_page_url(link.normalized_url))
     if target_page is None:
         return False
+    source_normalized_url = _normalized_page_url(page.page_url)
     return not any(
-        target_link.normalized_url == page.page_url
+        _normalized_page_url(target_link.normalized_url) == source_normalized_url
         and not target_link.is_invalid_url
         and not target_link.is_invalid_hreflang
         for target_link in target_page.links
