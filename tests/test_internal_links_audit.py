@@ -51,6 +51,32 @@ def test_detects_generic_repeated_and_weak_anchor_coverage():
     assert result.summary.repeated_anchor_texts == {"read more": 2}
 
 
+def test_repeated_descriptive_anchor_is_low_diversity_not_anchor_coverage_gap():
+    crawl_result = CrawlResult(
+        start_url="https://example.com/",
+        pages=[
+            _crawl_page("https://example.com/", depth=0),
+            _crawl_page("https://example.com/docs", depth=1, discovered_from="https://example.com/"),
+            _crawl_page("https://example.com/services", depth=1, discovered_from="https://example.com/"),
+        ],
+        discovered_urls=[
+            _link("https://example.com/", "https://example.com/docs", "Docs", depth=1),
+            _link("https://example.com/", "https://example.com/services", "Services", depth=1),
+            _link("https://example.com/docs", "https://example.com/services", "Services", depth=2),
+        ],
+    )
+
+    result = run_internal_link_graph_audit(crawl_result)
+    service_finding_ids = [
+        finding.id
+        for finding in result.findings
+        if finding.page_url == "https://example.com/services"
+    ]
+
+    assert "internal_links.weak_anchor_coverage" not in service_finding_ids
+    assert "internal_links.low_anchor_diversity" in service_finding_ids
+
+
 def test_output_is_json_serializable():
     result = run_internal_link_graph_audit(_crawl_result())
 

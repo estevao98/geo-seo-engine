@@ -108,6 +108,10 @@ def _build_findings(
 ) -> list[InternalLinkGraphFinding]:
     findings: list[InternalLinkGraphFinding] = []
     generic_anchors = {_normalize_anchor(anchor) for anchor in options.generic_anchor_texts}
+    inbound_edges_by_target: dict[str, list[InternalLinkEdge]] = defaultdict(list)
+    for edge in edges:
+        if edge.target_crawled:
+            inbound_edges_by_target[edge.target_url].append(edge)
 
     for page in pages:
         if page.is_orphan:
@@ -173,9 +177,10 @@ def _build_findings(
                 )
             )
 
-        if page.inbound_internal_links > 0 and page.inbound_internal_links > len(
-            page.inbound_anchor_texts
-        ):
+        inbound_edges = inbound_edges_by_target[page.normalized_url]
+        missing_inbound_anchors = sum(1 for edge in inbound_edges if not edge.anchor_text)
+
+        if missing_inbound_anchors > 0:
             findings.append(
                 _page_finding(
                     "internal_links.weak_anchor_coverage",
@@ -184,7 +189,7 @@ def _build_findings(
                     page,
                     "inbound anchor text",
                     "descriptive text on each inbound link",
-                    f"{len(page.inbound_anchor_texts)} unique anchors for {page.inbound_internal_links} inbound links",
+                    f"{missing_inbound_anchors} missing anchors for {page.inbound_internal_links} inbound links",
                     "Missing or empty anchor text removes context that helps users and crawlers understand why the target is relevant.",
                     "Use concise, descriptive anchor text for important internal links.",
                     f"Review anchors used to link to {page.normalized_url}.",
