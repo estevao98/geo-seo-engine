@@ -65,6 +65,26 @@ def test_crawler_passes_html_to_optional_callback_without_fetching_images():
     assert captured_pages[0]["html"] == '<html><body><img src="/logo.png" alt="Logo"></body></html>'
 
 
+def test_crawler_records_main_content_for_html_pages():
+    client = FakeHttpClient(
+        {
+            "https://example.com/": html_response(
+                "https://example.com/",
+                """
+                <header>Menu</header>
+                <main><h1>Primary heading</h1><p>Useful page copy.</p></main>
+                """,
+            )
+        }
+    )
+
+    result = crawl_site("https://example.com", http_client=client)
+
+    assert result.pages[0].main_content is not None
+    assert result.pages[0].main_content.selector == "main"
+    assert result.pages[0].main_content.text == "Primary heading Useful page copy."
+
+
 def test_crawler_extracts_relative_internal_link():
     client = FakeHttpClient(
         {
@@ -399,4 +419,5 @@ def test_crawler_does_not_extract_links_from_non_html():
 
     assert client.requested_urls == ["https://example.com/"]
     assert result.pages[0].links_found == 0
+    assert result.pages[0].main_content is None
     assert result.discovered_urls == []

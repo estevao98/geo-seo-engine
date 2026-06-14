@@ -4,7 +4,7 @@ from collections import deque
 from collections.abc import Callable
 
 from geo_seo_engine.core import is_same_site, normalize_url
-from geo_seo_engine.crawler.extract import extract_links
+from geo_seo_engine.crawler.extract import extract_links, extract_main_content
 from geo_seo_engine.crawler.models import CrawlOptions, CrawlPage, CrawlResult, SkippedUrl
 from geo_seo_engine.http import HttpClient
 
@@ -53,6 +53,7 @@ def crawl_site(
             final_normalized_url = final_url
 
         links_found = 0
+        main_content = None
         page_error = fetch_result.error
 
         if page_error:
@@ -85,6 +86,7 @@ def crawl_site(
                 exclude_patterns=active_options.exclude_patterns,
             )
             links_found = len(links)
+            main_content = extract_main_content(fetch_result.text)
             result.skipped_urls.extend(skipped)
 
             for link in links:
@@ -126,6 +128,7 @@ def crawl_site(
                 content_type=fetch_result.content_type or None,
                 error=page_error,
                 links_found=links_found,
+                main_content=main_content,
             )
         )
 

@@ -23,6 +23,14 @@ class CrawlPage(CoreModel):
     content_type: str | None = None
     error: str | None = None
     links_found: int = 0
+    main_content: MainContent | None = None
+
+
+class MainContent(CoreModel):
+    selector: str | None = None
+    text: str = ""
+    text_length: int = Field(default=0, ge=0)
+    word_count: int = Field(default=0, ge=0)
 
 
 class DiscoveredLink(CoreModel):
