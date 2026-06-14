@@ -27,6 +27,7 @@ from geo_seo_engine.rendering import (
     extract_render_snapshot,
     run_rendering_audit,
 )
+from geo_seo_engine.search_console import load_search_console_analytics
 from geo_seo_engine.social import extract_social_metadata_from_html, run_social_metadata_audit
 from geo_seo_engine.technical import TechnicalAuditOptions, run_technical_audit
 from geo_seo_engine.analyzers.sitemap_audit import audit_sitemap as run_sitemap_audit
@@ -1234,6 +1235,44 @@ def audit_performance(
 
     snapshot = parse_pagespeed_result(payload, page_url=page_url)
     result = run_performance_audit([snapshot], start_url=snapshot.page_url)
+
+    if output_format == "json":
+        rendered = json.dumps(
+            result.model_dump(mode="json"),
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        _write_or_print(rendered, output, is_json=True)
+        return
+
+
+@app.command("search-console-analytics")
+def search_console_analytics(
+    input_path: Path = typer.Option(
+        ...,
+        "--input",
+        help="Local Search Console Search Analytics JSON or CSV file.",
+    ),
+    output_format: Literal["json"] = typer.Option(
+        "json",
+        "--format",
+        "-f",
+        help="Output format: json.",
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Write output to a file.",
+    ),
+) -> None:
+    """Summarize local Search Console Search Analytics data without credentials."""
+    try:
+        result = load_search_console_analytics(input_path)
+    except ValueError as exc:
+        typer.echo(str(exc), err=True)
+        raise typer.Exit(code=1) from exc
 
     if output_format == "json":
         rendered = json.dumps(
