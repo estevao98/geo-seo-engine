@@ -19,7 +19,7 @@ from geo_seo_engine.entity_readiness.models import (
 )
 
 _WORD_RE = re.compile(r"\b[\w'-]+\b", re.UNICODE)
-_AUTHOR_RE = re.compile(r"\b(author|written by|byline|por|autor|autora)\b", re.I)
+_AUTHOR_RE = re.compile(r"\b(author|written\\s+by|byline|autor|autora|escrito\\s+por|redigido\\s+por|publicado\\s+por)\b", re.I)
 _ORG_RE = re.compile(r"\b(company|organization|publisher|empresa|organizacao)\b", re.I)
 _STOPWORDS = {
     "a",

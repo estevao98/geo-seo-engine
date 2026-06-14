@@ -110,5 +110,31 @@ def test_entity_readiness_output_is_json_serializable():
     assert "entity.missing_author_signal" in rendered
 
 
+def test_entity_readiness_does_not_treat_generic_portuguese_por_as_author():
+    html = """
+    <html>
+      <head>
+        <title>Guia de SEO técnico para equipes SaaS</title>
+        <meta name="description" content="Guia de SEO técnico para equipes SaaS com organização e tópicos claros.">
+        <script type="application/ld+json">
+        {"@context":"https://schema.org","@type":"Organization","name":"Acme Software","sameAs":"https://example.com/acme"}
+        </script>
+      </head>
+      <body>
+        <main>
+          <h1>Guia de SEO técnico para equipes SaaS</h1>
+          <p>Por exemplo, equipes SaaS precisam mapear entidades, tópicos, páginas, conteúdo, metadados, organização, produto, categoria, intenção, dúvidas, glossário, breadcrumbs, navegação, links internos, contexto, confiança, revisão, fonte, atualização, documentação, estrutura, clareza, consistência, extração, classificação, indexação, descoberta, rastreamento e leitura para sistemas de busca.</p>
+        </main>
+      </body>
+    </html>
+    """
+    page = extract_main_content_from_html(html, "https://example.com/guia-seo")
+
+    result = run_entity_readiness_audit([page], html_by_url={page.page_url: html})
+
+    assert "entity.missing_author_signal" in _finding_ids(result)
+    assert result.summary.pages_with_author_signal == 0
+
+
 def _finding_ids(result):
     return [finding.id for finding in result.findings]
