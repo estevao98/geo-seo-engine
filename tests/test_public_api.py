@@ -10,6 +10,7 @@ from geo_seo_engine.core import (
 from geo_seo_engine.crawler import CrawlOptions, crawl_site
 from geo_seo_engine.http import FetchResult, HttpClient
 from geo_seo_engine.inventory import build_url_inventory
+from geo_seo_engine.opportunities import run_opportunity_engine
 from geo_seo_engine.technical import TechnicalAuditOptions, run_technical_audit
 
 
@@ -37,4 +38,5 @@ def test_foundation_public_api_imports_are_available():
     assert callable(crawl_site)
     assert callable(build_url_inventory)
     assert callable(run_technical_audit)
+    assert callable(run_opportunity_engine)
     assert TechnicalAuditOptions(max_depth_warning=1).max_depth_warning == 1
