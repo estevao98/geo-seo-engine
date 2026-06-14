@@ -15,6 +15,7 @@ from geo_seo_engine.content import extract_main_content_from_html, summarize_con
 from geo_seo_engine.content_quality import run_content_quality_audit
 from geo_seo_engine.core import normalize_url
 from geo_seo_engine.crawler import CrawlOptions, crawl_site as run_crawl_site
+from geo_seo_engine.entity_readiness import run_entity_readiness_audit
 from geo_seo_engine.images import extract_images_from_html, run_image_audit
 from geo_seo_engine.i18n import extract_hreflang_from_html, run_hreflang_audit
 from geo_seo_engine.inventory import build_url_inventory as run_build_url_inventory
@@ -494,6 +495,116 @@ def audit_content_quality(
         on_html_page=collect_main_content,
     )
     result = run_content_quality_audit(pages, start_url=crawl_result.start_url)
+
+    if output_format == "json":
+        rendered = json.dumps(
+            result.model_dump(mode="json"),
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        _write_or_print(rendered, output, is_json=True)
+        return
+
+
+@app.command("audit-entity-readiness")
+def audit_entity_readiness(
+    url: str,
+    max_pages: int = typer.Option(
+        25,
+        "--max-pages",
+        help="Maximum number of pages to fetch before auditing entity readiness.",
+        min=1,
+    ),
+    max_depth: int = typer.Option(
+        2,
+        "--max-depth",
+        help="Maximum link depth to enqueue. The start URL is depth 0.",
+        min=0,
+    ),
+    allowed_hosts: list[str] | None = typer.Option(
+        None,
+        "--allowed-host",
+        help="Allowed host. Defaults to the start URL host. Can be repeated.",
+    ),
+    include_patterns: list[str] | None = typer.Option(
+        None,
+        "--include-pattern",
+        help="fnmatch pattern for normalized URL or path. Can be repeated.",
+    ),
+    exclude_patterns: list[str] | None = typer.Option(
+        None,
+        "--exclude-pattern",
+        help="fnmatch pattern for normalized URL or path. Can be repeated.",
+    ),
+    html_file: Path | None = typer.Option(
+        None,
+        "--html-file",
+        help="Audit a local HTML file as a single page instead of crawling.",
+    ),
+    output_format: Literal["json"] = typer.Option(
+        "json",
+        "--format",
+        "-f",
+        help="Output format: json.",
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Write output to a file.",
+    ),
+) -> None:
+    """Audit deterministic GEO entity, authorship, publisher and topic signals."""
+    effective_allowed_hosts = allowed_hosts or [_normalized_host(url)]
+    pages = []
+    html_by_url: dict[str, str] = {}
+
+    if html_file:
+        html = html_file.read_text(encoding="utf-8")
+        page = extract_main_content_from_html(
+            html,
+            url,
+            allowed_hosts=effective_allowed_hosts,
+        )
+        pages.append(page)
+        html_by_url[page.page_url] = html
+        start_url = page.page_url
+    else:
+        crawl_options = CrawlOptions(
+            allowed_hosts=allowed_hosts or [],
+            max_pages=max_pages,
+            max_depth=max_depth,
+            include_patterns=include_patterns or [],
+            exclude_patterns=exclude_patterns or [],
+        )
+
+        def collect_page_html(
+            page_url: str,
+            normalized_url: str,
+            final_url: str,
+            html: str,
+            content_type: str | None,
+            depth: int,
+        ) -> None:
+            del page_url, content_type, depth
+            content_page_url = final_url or normalized_url
+            page = extract_main_content_from_html(
+                html,
+                content_page_url,
+                allowed_hosts=effective_allowed_hosts,
+            )
+            pages.append(page)
+            html_by_url[page.page_url] = html
+
+        crawl_result = run_crawl_site(
+            url,
+            options=crawl_options,
+            on_html_page=collect_page_html,
+        )
+        start_url = crawl_result.start_url
+
+    result = run_entity_readiness_audit(pages, html_by_url=html_by_url, start_url=start_url)
 
     if output_format == "json":
         rendered = json.dumps(
