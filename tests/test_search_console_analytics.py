@@ -96,6 +96,23 @@ def test_load_search_console_analytics_reads_csv_rows(tmp_path):
     assert result.aggregate.ctr == 0.2
 
 
+def test_load_search_console_analytics_accepts_title_case_csv_headers(tmp_path):
+    input_path = tmp_path / "input.csv"
+    input_path.write_text(
+        "Query,Page,Date,Country,Device,Clicks,Impressions,CTR,Position\n"
+        "geo seo,https://example.com/page,2026-01-15,BR,mobile,5,25,20%,2.5\n",
+        encoding="utf-8",
+    )
+
+    result = load_search_console_analytics(input_path)
+
+    assert result.invalid_rows == []
+    assert result.rows[0].query == "geo seo"
+    assert result.rows[0].normalized_page == "https://example.com/page"
+    assert result.rows[0].ctr == 0.2
+    assert result.aggregate.position == 2.5
+
+
 def _row(
     page: str,
     query: str,

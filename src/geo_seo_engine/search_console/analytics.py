@@ -162,9 +162,9 @@ def _expand_api_keys(record: dict[str, Any]) -> dict[str, Any]:
 
 def _get_field(record: dict[str, Any], field: str) -> Any:
     aliases = {
-        "page": ("page", "url"),
+        "page": ("page", "Page", "url", "URL"),
         "ctr": ("ctr", "CTR"),
-        "position": ("position", "average_position", "Average position"),
+        "position": ("position", "Position", "average_position", "Average position", "Average Position"),
     }
     for key in aliases.get(field, (field, field.title())):
         if key in record:
