@@ -44,6 +44,8 @@ class ExtractedMainContent(CoreModel):
     link_count: int = Field(default=0, ge=0)
     internal_link_count: int = Field(default=0, ge=0)
     external_link_count: int = Field(default=0, ge=0)
+    image_count: int = Field(default=0, ge=0)
+    images_missing_alt_count: int = Field(default=0, ge=0)
     boilerplate_removed: bool = False
 
 

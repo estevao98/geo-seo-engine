@@ -56,7 +56,9 @@ def extract_main_content_from_html(
     text_blocks = _extract_text_blocks(main_tag) if main_tag is not None else []
     effective_allowed_hosts = allowed_hosts or _default_allowed_hosts(page_url)
     links = _extract_links(main_tag, page_url, effective_allowed_hosts) if main_tag is not None else []
-    image_alt_texts = _extract_image_alt_texts(main_tag) if main_tag is not None else []
+    image_alt_texts, image_count, images_missing_alt_count = (
+        _extract_image_alt_signals(main_tag) if main_tag is not None else ([], 0, 0)
+    )
     internal_link_count = sum(1 for link in links if link.is_internal)
     word_count = _word_count(plain_text)
 
@@ -80,6 +82,8 @@ def extract_main_content_from_html(
         link_count=len(links),
         internal_link_count=internal_link_count,
         external_link_count=len(links) - internal_link_count,
+        image_count=image_count,
+        images_missing_alt_count=images_missing_alt_count,
         boilerplate_removed=boilerplate_removed,
     )
 
@@ -224,14 +228,21 @@ def _extract_links(tag, page_url: str, allowed_hosts: list[str]) -> list[Content
     return links
 
 
-def _extract_image_alt_texts(tag) -> list[str]:
+def _extract_image_alt_signals(tag) -> tuple[list[str], int, int]:
     alt_texts: list[str] = []
+    image_count = 0
+    missing_alt_count = 0
     for image in tag.find_all("img"):
-        if image.has_attr("alt"):
-            alt = _clean_text(str(image.get("alt") or ""))
-            if alt:
-                alt_texts.append(alt)
-    return alt_texts
+        image_count += 1
+        if not image.has_attr("alt"):
+            missing_alt_count += 1
+            continue
+        alt = _clean_text(str(image.get("alt") or ""))
+        if alt:
+            alt_texts.append(alt)
+        else:
+            missing_alt_count += 1
+    return alt_texts, image_count, missing_alt_count
 
 
 def _best_by_text_length(tags):

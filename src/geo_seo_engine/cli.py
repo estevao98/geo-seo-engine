@@ -12,6 +12,7 @@ from geo_seo_engine.analyzers.page_audit import audit_page as run_page_audit
 from geo_seo_engine.config.loader import DEFAULT_PROJECT_CONFIG_YAML
 from geo_seo_engine.config.loader import validate_project_config as run_config_validation
 from geo_seo_engine.content import extract_main_content_from_html, summarize_content_extraction
+from geo_seo_engine.content_quality import run_content_quality_audit
 from geo_seo_engine.core import normalize_url
 from geo_seo_engine.crawler import CrawlOptions, crawl_site as run_crawl_site
 from geo_seo_engine.images import extract_images_from_html, run_image_audit
@@ -411,6 +412,96 @@ def inventory(
 
     if output_format == "json":
         rendered = json.dumps(result.model_dump(mode="json"), ensure_ascii=False, indent=2)
+        _write_or_print(rendered, output, is_json=True)
+        return
+
+
+@app.command("audit-content-quality")
+def audit_content_quality(
+    url: str,
+    max_pages: int = typer.Option(
+        25,
+        "--max-pages",
+        help="Maximum number of pages to fetch before auditing content quality.",
+        min=1,
+    ),
+    max_depth: int = typer.Option(
+        2,
+        "--max-depth",
+        help="Maximum link depth to enqueue. The start URL is depth 0.",
+        min=0,
+    ),
+    allowed_hosts: list[str] | None = typer.Option(
+        None,
+        "--allowed-host",
+        help="Allowed host. Defaults to the start URL host. Can be repeated.",
+    ),
+    include_patterns: list[str] | None = typer.Option(
+        None,
+        "--include-pattern",
+        help="fnmatch pattern for normalized URL or path. Can be repeated.",
+    ),
+    exclude_patterns: list[str] | None = typer.Option(
+        None,
+        "--exclude-pattern",
+        help="fnmatch pattern for normalized URL or path. Can be repeated.",
+    ),
+    output_format: Literal["json"] = typer.Option(
+        "json",
+        "--format",
+        "-f",
+        help="Output format: json.",
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Write output to a file.",
+    ),
+) -> None:
+    """Crawl HTML pages and audit deterministic main-content quality signals."""
+    crawl_options = CrawlOptions(
+        allowed_hosts=allowed_hosts or [],
+        max_pages=max_pages,
+        max_depth=max_depth,
+        include_patterns=include_patterns or [],
+        exclude_patterns=exclude_patterns or [],
+    )
+    effective_allowed_hosts = allowed_hosts or [_normalized_host(url)]
+    pages = []
+
+    def collect_main_content(
+        page_url: str,
+        normalized_url: str,
+        final_url: str,
+        html: str,
+        content_type: str | None,
+        depth: int,
+    ) -> None:
+        del page_url, content_type, depth
+        content_page_url = final_url or normalized_url
+        pages.append(
+            extract_main_content_from_html(
+                html,
+                content_page_url,
+                allowed_hosts=effective_allowed_hosts,
+            )
+        )
+
+    crawl_result = run_crawl_site(
+        url,
+        options=crawl_options,
+        on_html_page=collect_main_content,
+    )
+    result = run_content_quality_audit(pages, start_url=crawl_result.start_url)
+
+    if output_format == "json":
+        rendered = json.dumps(
+            result.model_dump(mode="json"),
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
         _write_or_print(rendered, output, is_json=True)
         return
 
