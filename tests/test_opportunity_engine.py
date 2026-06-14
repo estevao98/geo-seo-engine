@@ -114,6 +114,44 @@ def test_opportunity_engine_groups_by_page_type_and_priority():
     assert result.buckets_by_priority
 
 
+def test_opportunity_engine_matches_search_console_pages_after_url_normalization():
+    result = run_opportunity_engine(
+        {
+            "technical": {
+                "findings": [
+                    {
+                        "id": "technical.canonical",
+                        "title": "Canonical issue",
+                        "severity": "medium",
+                        "category": "technical",
+                        "page_url": "HTTPS://Example.com/Page#intro",
+                    }
+                ]
+            },
+            "search_console": {
+                "groups": {
+                    "by_page": [
+                        {
+                            "key": "https://example.com/Page",
+                            "clicks": 3,
+                            "impressions": 500,
+                            "ctr": 0.01,
+                            "position": 8.0,
+                        }
+                    ]
+                }
+            },
+        }
+    )
+
+    opportunity = result.opportunities[0]
+
+    assert opportunity.page_url == "https://example.com/Page"
+    assert opportunity.analytics is not None
+    assert opportunity.score_components.analytics > 0
+    assert result.buckets_by_page[0].key == "https://example.com/Page"
+
+
 def test_opportunity_engine_handles_missing_optional_inputs():
     result = run_opportunity_engine(
         {

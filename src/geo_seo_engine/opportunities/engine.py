@@ -7,6 +7,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from geo_seo_engine.core.models import Evidence
+from geo_seo_engine.core.url import normalize_url
 from geo_seo_engine.opportunities.models import (
     Opportunity,
     OpportunityAnalyticsSignal,
@@ -183,7 +184,7 @@ def _extract_search_console_pages(payload: dict[str, Any]) -> dict[str, Opportun
     for item in by_page:
         if not isinstance(item, dict):
             continue
-        page = _string_or_none(item.get("key") or item.get("page") or item.get("normalized_page"))
+        page = _normalize_page_key(_string_or_none(item.get("key") or item.get("page") or item.get("normalized_page")))
         if not page:
             continue
         signals[page] = OpportunityAnalyticsSignal(
@@ -250,7 +251,7 @@ def _build_summary(
 
 
 def _page_url(finding: dict[str, Any]) -> str | None:
-    return _string_or_none(finding.get("page_url") or finding.get("url") or finding.get("normalized_url"))
+    return _normalize_page_key(_string_or_none(finding.get("page_url") or finding.get("url") or finding.get("normalized_url")))
 
 
 def _type_name(source: str, finding: dict[str, Any]) -> str:
@@ -360,6 +361,15 @@ def _opportunity_id(source: str, finding_id: str, page_url: str | None, index: i
 def _slug(value: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
     return slug or "item"
+
+
+def _normalize_page_key(value: str | None) -> str | None:
+    if not value:
+        return None
+    try:
+        return normalize_url(value).normalized_url
+    except ValueError:
+        return value
 
 
 def _string_or_none(value: Any) -> str | None:
