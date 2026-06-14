@@ -6,13 +6,11 @@ from urllib.parse import urlsplit
 
 from bs4 import BeautifulSoup
 
+from geo_seo_engine.content import extract_main_content_from_html
 from geo_seo_engine.core import is_same_site, normalize_url, resolve_url
 from geo_seo_engine.crawler.models import DiscoveredLink, MainContent, SkippedUrl
 
 _IGNORED_SCHEMES = {"mailto", "tel", "javascript", "data", "ftp"}
-_MAIN_CONTENT_SELECTORS = "main, article, [role='main']"
-_NON_CONTENT_SELECTORS = "script, style, noscript, svg, template, nav, header, footer, aside, form, dialog"
-_HIDDEN_SELECTORS = "[hidden], [aria-hidden='true']"
 
 
 def extract_links(
@@ -99,22 +97,8 @@ def extract_links(
 
 
 def extract_main_content(html: str) -> MainContent:
-    soup = BeautifulSoup(html, "html.parser")
-
-    for tag in soup.select(_NON_CONTENT_SELECTORS):
-        tag.decompose()
-    for tag in soup.select(_HIDDEN_SELECTORS):
-        tag.decompose()
-
-    candidates = soup.select(_MAIN_CONTENT_SELECTORS)
-    if not candidates:
-        fallback = soup.body or soup
-        text = _clean_text(fallback.get_text(" "))
-        return _main_content_from_text(text, _selector_for(fallback))
-
-    best_candidate = max(candidates, key=lambda tag: len(_clean_text(tag.get_text(" "))))
-    text = _clean_text(best_candidate.get_text(" "))
-    return _main_content_from_text(text, _selector_for(best_candidate))
+    extracted = extract_main_content_from_html(html, page_url="https://example.invalid/")
+    return _main_content_from_text(extracted.plain_text, extracted.main_selector)
 
 
 def _matches_any(normalized_url: str, path: str, patterns: list[str]) -> bool:
@@ -132,23 +116,3 @@ def _main_content_from_text(text: str, selector: str | None) -> MainContent:
 
 def _clean_text(text: str) -> str:
     return " ".join(text.split())
-
-
-def _selector_for(tag) -> str | None:
-    name = getattr(tag, "name", None)
-    if not name or name == "[document]":
-        return None
-
-    tag_id = tag.get("id")
-    if tag_id:
-        return f"{name}#{tag_id}"
-
-    classes = tag.get("class") or []
-    if classes:
-        return f"{name}.{classes[0]}"
-
-    role = tag.get("role")
-    if role:
-        return f"{name}[role='{role}']"
-
-    return name
