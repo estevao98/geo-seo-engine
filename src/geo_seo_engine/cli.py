@@ -16,6 +16,7 @@ from geo_seo_engine.crawler import CrawlOptions, crawl_site as run_crawl_site
 from geo_seo_engine.images import extract_images_from_html, run_image_audit
 from geo_seo_engine.i18n import extract_hreflang_from_html, run_hreflang_audit
 from geo_seo_engine.inventory import build_url_inventory as run_build_url_inventory
+from geo_seo_engine.performance import parse_pagespeed_result, run_performance_audit
 from geo_seo_engine.rendering import (
     StaticHtmlRenderer,
     UnavailableRenderer,
@@ -802,6 +803,59 @@ def audit_rendering(
         on_html_page=collect_render_snapshot,
     )
     result = run_rendering_audit(pages, start_url=crawl_result.start_url)
+
+    if output_format == "json":
+        rendered = json.dumps(
+            result.model_dump(mode="json"),
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        _write_or_print(rendered, output, is_json=True)
+        return
+
+
+@app.command("audit-performance")
+def audit_performance(
+    input_path: Path = typer.Option(
+        ...,
+        "--input",
+        help="Local PageSpeed/Lighthouse-style JSON payload to import.",
+    ),
+    output_format: Literal["json"] = typer.Option(
+        "json",
+        "--format",
+        "-f",
+        help="Output format: json.",
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Write output to a file.",
+    ),
+    page_url: str | None = typer.Option(
+        None,
+        "--page-url",
+        help="Override the page URL stored in the imported payload.",
+    ),
+) -> None:
+    """Audit a local PageSpeed/Lighthouse-style JSON payload without external calls."""
+    try:
+        payload = json.loads(input_path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        typer.echo(f"Could not read input JSON: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    except json.JSONDecodeError as exc:
+        typer.echo(f"Invalid input JSON: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    if not isinstance(payload, dict):
+        typer.echo("Input JSON must be an object.", err=True)
+        raise typer.Exit(code=1)
+
+    snapshot = parse_pagespeed_result(payload, page_url=page_url)
+    result = run_performance_audit([snapshot], start_url=snapshot.page_url)
 
     if output_format == "json":
         rendered = json.dumps(
