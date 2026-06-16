@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import re
 from collections import Counter, defaultdict
 from dataclasses import dataclass, field
@@ -57,6 +58,8 @@ class ClusterItem:
     status: str | None = None
     type: str | None = None
     finding_id: str | None = None
+    source_opportunity_ids: list[str] = field(default_factory=list)
+    source_finding_ids: list[str] = field(default_factory=list)
     evidence: list[Evidence] = field(default_factory=list)
 
 
@@ -221,10 +224,12 @@ def _items_from_opportunities(
         page_url = _normalize_page(_string(opportunity.get("page_url") or opportunity.get("url")))
         page = pages.get(page_url or "", {})
         entity_audit = entity_audits.get(page_url or "", {})
+        source_id = _string(opportunity.get("id")) or f"opportunity.{index}"
+        finding_id = _string(opportunity.get("finding_id"))
         items.append(
             ClusterItem(
                 source_type="opportunity",
-                source_id=_string(opportunity.get("id")) or f"opportunity.{index}",
+                source_id=source_id,
                 page_url=page_url,
                 title=_string(opportunity.get("title")) or _string(page.get("title")),
                 primary_entity=_string(entity_audit.get("primary_entity") or page.get("primary_entity")),
@@ -232,7 +237,9 @@ def _items_from_opportunities(
                 priority=_normalized_priority(opportunity.get("priority")),
                 status="opportunity",
                 type=_string(opportunity.get("type")) or "opportunity",
-                finding_id=_string(opportunity.get("finding_id")),
+                finding_id=finding_id,
+                source_opportunity_ids=[source_id],
+                source_finding_ids=[finding_id] if finding_id else [],
                 evidence=_evidence(opportunity.get("evidence")),
             )
         )
@@ -259,6 +266,8 @@ def _items_from_briefs(
                 priority=_normalized_priority(brief.get("priority")),
                 status=_string(brief.get("brief_type")) or "brief",
                 type=_string(brief.get("brief_type")) or "brief",
+                source_opportunity_ids=_strings(brief.get("source_opportunity_ids")),
+                source_finding_ids=_strings(brief.get("source_finding_ids")),
                 evidence=_evidence(brief.get("evidence")),
             )
         )
@@ -273,8 +282,14 @@ def _build_cluster(
 ) -> ContentCluster:
     page_urls = _unique([item.page_url for item in items if item.page_url])
     brief_ids = _unique([item.source_id for item in items if item.source_type == "brief"])
-    opportunity_ids = _unique([item.source_id for item in items if item.source_type == "opportunity"])
-    finding_ids = _unique([item.finding_id for item in items if item.finding_id])
+    opportunity_ids = _unique(
+        [item.source_id for item in items if item.source_type == "opportunity"]
+        + [source_id for item in items for source_id in item.source_opportunity_ids]
+    )
+    finding_ids = _unique(
+        [item.finding_id for item in items if item.finding_id]
+        + [source_id for item in items for source_id in item.source_finding_ids]
+    )
     entities = _unique([item.primary_entity for item in items if item.primary_entity])
     topics = _unique([topic for item in items for topic in item.topics if topic])[:20]
     pillar, pillar_reason = _pillar_page(page_urls, items, internal_links)
@@ -533,7 +548,7 @@ def _unique_evidence(items: list[Evidence]) -> list[Evidence]:
     seen = set()
     output = []
     for item in items:
-        key = tuple(sorted(item.model_dump(mode="json").items()))
+        key = json.dumps(item.model_dump(mode="json"), sort_keys=True, default=str)
         if key in seen:
             continue
         seen.add(key)

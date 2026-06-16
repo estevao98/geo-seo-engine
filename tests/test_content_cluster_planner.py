@@ -74,6 +74,40 @@ def test_content_cluster_planner_recommends_missing_internal_links_only_within_c
     assert "opportunity.1" in recommendations[0].source_ids
 
 
+def test_content_cluster_planner_preserves_brief_embedded_source_ids_without_opportunity_input():
+    result = plan_content_clusters(
+        {
+            "content_briefs": {
+                "briefs": [
+                    {
+                        "id": "content_brief.entity_seo",
+                        "target_url": "https://example.com/guides/entity-seo",
+                        "brief_type": "risk_remediation",
+                        "priority": "critical",
+                        "primary_topic_entity_cue": "Entity SEO",
+                        "source_opportunity_ids": ["opportunity.from_brief"],
+                        "source_finding_ids": ["entity.from_brief"],
+                        "evidence": [
+                            {
+                                "source": "content_brief",
+                                "observed": "Brief references source ids",
+                                "expected": "Cluster preserves source ids",
+                            }
+                        ],
+                    }
+                ]
+            }
+        }
+    )
+
+    cluster = result.clusters[0]
+
+    assert cluster.source_brief_ids == ["content_brief.entity_seo"]
+    assert cluster.source_opportunity_ids == ["opportunity.from_brief"]
+    assert cluster.source_finding_ids == ["entity.from_brief"]
+    assert cluster.evidence[0].source == "content_brief"
+
+
 def test_content_cluster_planner_json_serialization_is_stable():
     result = plan_content_clusters(_payload())
 
