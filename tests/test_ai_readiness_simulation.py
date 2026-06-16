@@ -84,6 +84,42 @@ def test_ai_readiness_handles_missing_optional_inputs():
     assert "structured_data" in result.summary.inputs_missing
 
 
+def test_ai_readiness_preserves_cluster_opportunity_and_source_ref_ids():
+    payload = {
+        "content_clusters": {
+            "clusters": [
+                {
+                    "id": "cluster.topic",
+                    "pillar_page_url": "https://example.com/a",
+                    "supporting_page_urls": ["https://example.com/b"],
+                    "source_page_ids": ["page.a"],
+                    "source_brief_ids": ["brief.a"],
+                    "source_opportunity_ids": ["opportunity.cluster"],
+                    "source_finding_ids": ["finding.cluster"],
+                    "source_refs": [
+                        {
+                            "source_type": "opportunity",
+                            "source_id": "opportunity.ref",
+                            "page_url": "https://example.com/a",
+                        }
+                    ],
+                    "evidence": [{"source": "cluster", "observed": "Cluster source ids"}],
+                }
+            ]
+        }
+    }
+
+    result = run_ai_readiness_simulation(payload)
+
+    cluster = result.findings[0]
+    assert cluster.target_type == "cluster"
+    assert "page.a" in cluster.source_ids
+    assert "brief.a" in cluster.source_ids
+    assert "opportunity.cluster" in cluster.source_ids
+    assert "finding.cluster" in cluster.source_ids
+    assert "opportunity.ref" in cluster.source_ids
+
+
 def test_ai_readiness_supports_cluster_targets():
     payload = {
         "main_content": {

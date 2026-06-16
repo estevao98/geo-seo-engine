@@ -148,9 +148,7 @@ def _build_targets(
                 cluster_id=cluster_id,
                 page_url=_normalize_page(_string(cluster.get("pillar_page_url"))),
                 pages=cluster_pages,
-                source_ids=_strings(cluster.get("source_page_ids"))
-                + _strings(cluster.get("source_brief_ids"))
-                + _strings(cluster.get("source_finding_ids")),
+                source_ids=_cluster_source_ids(cluster),
                 evidence=_evidence(cluster.get("evidence")),
             )
         )
@@ -452,6 +450,19 @@ def _risks(components: dict[str, AIReadinessComponentScore]) -> list[AIReadiness
             )
         )
     return risks
+
+
+def _cluster_source_ids(cluster: dict[str, Any]) -> list[str]:
+    ids = (
+        _strings(cluster.get("source_page_ids"))
+        + _strings(cluster.get("source_brief_ids"))
+        + _strings(cluster.get("source_opportunity_ids"))
+        + _strings(cluster.get("source_finding_ids"))
+    )
+    for ref in _list(cluster.get("source_refs")):
+        if isinstance(ref, dict):
+            ids.append(_string(ref.get("source_id")))
+    return _unique(ids)
 
 
 def _summary(
