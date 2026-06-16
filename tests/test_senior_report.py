@@ -37,6 +37,7 @@ def test_senior_report_preserves_evidence_and_source_ids():
     assert risk.evidence[0].source == "technical"
     assert risk.evidence[0].observed == 500
     assert any(ref.source_id == "entity.missing_primary_entity" for ref in result.evidence_source_references)
+    assert any(ref.source_id == "opportunity.from_ref" for ref in result.evidence_source_references)
     assert any("opportunity.1" in action.source_ids for action in result.operational_action_queue)
 
 
@@ -130,6 +131,13 @@ def _payload():
                     "target_url": "https://example.com/guide",
                     "priority": "high",
                     "source_opportunity_ids": ["opportunity.1"],
+                    "source_refs": [
+                        {
+                            "source_type": "opportunity",
+                            "source_id": "opportunity.from_ref",
+                            "page_url": "https://example.com/guide",
+                        }
+                    ],
                     "risks_and_next_actions": [
                         {
                             "source_id": "opportunity.1",

@@ -402,6 +402,9 @@ def _source_ids(item: dict[str, Any]) -> list[str]:
         raw = item.get(key)
         if isinstance(raw, list):
             values.extend(str(value) for value in raw if value)
+    for ref in item.get("source_refs", []):
+        if isinstance(ref, dict) and ref.get("source_id"):
+            values.append(str(ref["source_id"]))
     for key in ("finding_id", "source_id"):
         if item.get(key):
             values.append(str(item[key]))
