@@ -185,7 +185,7 @@ python -m geo_seo_engine.quality_gates
 python -m pytest
 ```
 
-O CI usa Python 3.12, instala o pacote com dependências de desenvolvimento,
+O CI usa Python 3.13, instala o pacote com dependências de desenvolvimento,
 executa smoke checks offline-safe (`import geo_seo_engine` e `geo version`) e
 falha com mensagem objetiva se houver arquivos bloqueados versionados.
 
