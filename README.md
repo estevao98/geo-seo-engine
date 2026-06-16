@@ -169,6 +169,26 @@ Uma pesquisa critica e operacional para evoluir o MVP em uma engine senior esta 
 - Não commitar tokens, credenciais, dumps de banco ou arquivos de configuração sensíveis.
 - Antes de publicar ou abrir PR, consulte [`SECURITY.md`](SECURITY.md) e rode a varredura recomendada.
 
+## Validação local e CI
+
+O repositório possui gates locais e em GitHub Actions para manter testes,
+higiene de diff, smoke checks de import/CLI e bloqueio de arquivos gerados ou
+sensíveis alinhados ao fluxo de revisão.
+
+Antes de finalizar uma mudança, rode:
+
+```bash
+git status --short
+git diff --stat
+git diff --check
+python -m geo_seo_engine.quality_gates
+python -m pytest
+```
+
+O CI usa Python 3.12, instala o pacote com dependências de desenvolvimento,
+executa smoke checks offline-safe (`import geo_seo_engine` e `geo version`) e
+falha com mensagem objetiva se houver arquivos bloqueados versionados.
+
 ## O que este repositório não promete
 
 - Não promete crescimento de tráfego.

@@ -1,0 +1,48 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  quality-gates:
+    name: Python quality gates
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install package with dev dependencies
+        run: python -m pip install -e ".[dev]"
+
+      - name: Import public API smoke check
+        run: python -c "import geo_seo_engine; from geo_seo_engine.cli import app; print(geo_seo_engine.__version__)"
+
+      - name: CLI smoke check
+        run: geo version
+
+      - name: Whitespace and diff hygiene
+        shell: bash
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha || github.event.before }}"
+          if [[ -n "$BASE_SHA" ]] && git cat-file -e "$BASE_SHA^{commit}"; then
+            git diff --check "$BASE_SHA" HEAD
+          else
+            git diff-tree --check --root -r HEAD
+          fi
+
+      - name: Generated and sensitive file guard
+        run: python -m geo_seo_engine.quality_gates
+
+      - name: Test suite
+        run: python -m pytest
