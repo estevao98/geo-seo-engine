@@ -8,6 +8,7 @@ import typer
 from rich.console import Console
 from rich.table import Table
 
+from geo_seo_engine.ai_readiness import run_ai_readiness_simulation
 from geo_seo_engine.analyzers.page_audit import audit_page as run_page_audit
 from geo_seo_engine.config.loader import DEFAULT_PROJECT_CONFIG_YAML
 from geo_seo_engine.config.loader import validate_project_config as run_config_validation
@@ -1417,6 +1418,53 @@ def content_cluster(
         raise typer.Exit(code=1)
 
     result = plan_content_clusters(payload)
+
+    if output_format == "json":
+        rendered = json.dumps(
+            result.model_dump(mode="json"),
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        _write_or_print(rendered, output, is_json=True)
+        return
+
+
+@app.command("ai-readiness")
+def ai_readiness(
+    input_path: Path = typer.Option(
+        ...,
+        "--input",
+        help="Local aggregate JSON containing optional audit, brief, cluster, link and Search Console outputs.",
+    ),
+    output_format: Literal["json"] = typer.Option(
+        "json",
+        "--format",
+        "-f",
+        help="Output format: json.",
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Write output to a file.",
+    ),
+) -> None:
+    """Run deterministic local AI readiness simulation from local JSON inputs."""
+    try:
+        payload = json.loads(input_path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        typer.echo(f"Could not read input JSON: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    except json.JSONDecodeError as exc:
+        typer.echo(f"Invalid input JSON: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    if not isinstance(payload, dict):
+        typer.echo("Input JSON must be an object.", err=True)
+        raise typer.Exit(code=1)
+
+    result = run_ai_readiness_simulation(payload)
 
     if output_format == "json":
         rendered = json.dumps(

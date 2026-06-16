@@ -1,3 +1,4 @@
+from geo_seo_engine.ai_readiness import run_ai_readiness_simulation
 from geo_seo_engine.config import ProjectConfig
 from geo_seo_engine.content_clusters import plan_content_clusters
 from geo_seo_engine.core import (
@@ -41,4 +42,5 @@ def test_foundation_public_api_imports_are_available():
     assert callable(run_technical_audit)
     assert callable(run_opportunity_engine)
     assert callable(plan_content_clusters)
+    assert callable(run_ai_readiness_simulation)
     assert TechnicalAuditOptions(max_depth_warning=1).max_depth_warning == 1
