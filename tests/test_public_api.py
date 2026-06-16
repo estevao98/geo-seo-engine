@@ -1,4 +1,5 @@
 from geo_seo_engine.config import ProjectConfig
+from geo_seo_engine.content_clusters import plan_content_clusters
 from geo_seo_engine.core import (
     Evidence,
     IssueCategory,
@@ -39,4 +40,5 @@ def test_foundation_public_api_imports_are_available():
     assert callable(build_url_inventory)
     assert callable(run_technical_audit)
     assert callable(run_opportunity_engine)
+    assert callable(plan_content_clusters)
     assert TechnicalAuditOptions(max_depth_warning=1).max_depth_warning == 1

@@ -13,6 +13,7 @@ from geo_seo_engine.config.loader import DEFAULT_PROJECT_CONFIG_YAML
 from geo_seo_engine.config.loader import validate_project_config as run_config_validation
 from geo_seo_engine.content import extract_main_content_from_html, summarize_content_extraction
 from geo_seo_engine.content_briefs import generate_content_briefs
+from geo_seo_engine.content_clusters import plan_content_clusters
 from geo_seo_engine.content_quality import run_content_quality_audit
 from geo_seo_engine.core import normalize_url
 from geo_seo_engine.crawler import CrawlOptions, CrawlResult, crawl_site as run_crawl_site
@@ -1369,6 +1370,53 @@ def content_brief(
         raise typer.Exit(code=1)
 
     result = generate_content_briefs(payload)
+
+    if output_format == "json":
+        rendered = json.dumps(
+            result.model_dump(mode="json"),
+            ensure_ascii=False,
+            indent=2,
+            sort_keys=True,
+        )
+        _write_or_print(rendered, output, is_json=True)
+        return
+
+
+@app.command("content-cluster")
+def content_cluster(
+    input_path: Path = typer.Option(
+        ...,
+        "--input",
+        help="Local aggregate JSON containing pages, briefs, opportunities and optional link/Search Console data.",
+    ),
+    output_format: Literal["json"] = typer.Option(
+        "json",
+        "--format",
+        "-f",
+        help="Output format: json.",
+    ),
+    output: Path | None = typer.Option(
+        None,
+        "--output",
+        "-o",
+        help="Write output to a file.",
+    ),
+) -> None:
+    """Plan deterministic, auditable content clusters from local JSON inputs."""
+    try:
+        payload = json.loads(input_path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        typer.echo(f"Could not read input JSON: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+    except json.JSONDecodeError as exc:
+        typer.echo(f"Invalid input JSON: {exc}", err=True)
+        raise typer.Exit(code=1) from exc
+
+    if not isinstance(payload, dict):
+        typer.echo("Input JSON must be an object.", err=True)
+        raise typer.Exit(code=1)
+
+    result = plan_content_clusters(payload)
 
     if output_format == "json":
         rendered = json.dumps(
