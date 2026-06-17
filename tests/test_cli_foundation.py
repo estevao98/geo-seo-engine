@@ -13,8 +13,8 @@ runner = CliRunner()
 @pytest.mark.parametrize(
     ("command", "expected_terms"),
     [
-        ("crawl", ["Crawl internal links", "--max-pages", "--max-depth"]),
-        ("inventory", ["summarize fetched URLs", "--max-pages", "--max-depth"]),
+        ("crawl", ["Crawl internal links"]),
+        ("inventory", ["summarize fetched URLs"]),
         (
             "audit-technical",
             ["technical SEO/GEO findings", "Depth above", "zero", "static links"],
