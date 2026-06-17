@@ -54,7 +54,9 @@ Antes de commit, execute tambem a checagem explicita de nomes sensiveis:
 git ls-files | grep -E '__pycache__|\.pyc$|reports/raw|site-audit-example.json|robots-audit-example.json|sitemap-audit-google.json|page-audit-example.json|gitleaks.*json|detect-secrets.*json|semgrep.*json|bandit.*json|pip-audit.*json|zap-report|trivy.*json|grype.*json|terraform.tfstate|site_config.json|\.env$|\.env\.|egg-info' || true
 ```
 
-A saida esperada para essa ultima checagem e vazia.
+Essa ultima checagem e complementar. A fonte autoritativa e `python -m geo_seo_engine.quality_gates`.
+
+Se ela listar arquivos permitidos como `.env.example` ou schemas sinteticos em `mcp/schemas/`, trate como falso positivo do grep manual. Qualquer outro caminho deve ser revisado antes do commit.
 
 ## CI documentado
 
