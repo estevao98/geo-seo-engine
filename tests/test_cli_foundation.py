@@ -22,7 +22,12 @@ runner = CliRunner()
     ],
 )
 def test_cli_foundation_command_help(command, expected_terms):
-    result = runner.invoke(app, [command, "--help"])
+    result = runner.invoke(
+        app,
+        [command, "--help"],
+        color=False,
+        terminal_width=160,
+    )
 
     assert result.exit_code == 0
     for term in expected_terms:
