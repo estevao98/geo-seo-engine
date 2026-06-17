@@ -156,9 +156,14 @@ Próximos incrementos planejados:
 - Ampliar regras de recomendação para novas issues técnicas.
 - Evoluir relatórios sem prometer ganho de ranking, indexação ou presença em respostas de IA.
 
-## Planejamento senior
+## Documentacao senior e handoff
 
-Uma pesquisa critica e operacional para evoluir o MVP em uma engine senior esta em [`docs/senior-engine/`](docs/senior-engine/). Ela inclui fontes pesquisadas, gap analysis, arquitetura v2, roadmap faseado, prompt pack para implementacao futura e comandos sugeridos para issues GitHub.
+A camada senior esta documentada em [`docs/senior-engine/`](docs/senior-engine/). Use estes documentos para operar, validar e manter o projeto:
+
+- [`docs/senior-engine/usage.md`](docs/senior-engine/usage.md): setup local, comandos principais, uso seguro e interpretacao de outputs.
+- [`docs/senior-engine/release-process.md`](docs/senior-engine/release-process.md): checklist de release, gates locais, comportamento do CI e politica de arquivos seguros.
+- [`docs/senior-engine/maintenance.md`](docs/senior-engine/maintenance.md): encaixe dos modulos, troubleshooting e notas de handoff.
+- [`docs/senior-engine/foundation-hardening.md`](docs/senior-engine/foundation-hardening.md): contratos e limites da fundacao ja implementada.
 
 ## Avisos de segurança
 
@@ -188,6 +193,8 @@ python -m pytest
 O CI usa Python 3.13, instala o pacote com dependências de desenvolvimento,
 executa smoke checks offline-safe (`import geo_seo_engine` e `geo version`) e
 falha com mensagem objetiva se houver arquivos bloqueados versionados.
+
+Para uma release ou handoff, siga o checklist completo em [`docs/senior-engine/release-process.md`](docs/senior-engine/release-process.md).
 
 ## O que este repositório não promete
 
