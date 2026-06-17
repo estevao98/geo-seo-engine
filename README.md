@@ -136,12 +136,13 @@ python -m pytest
 - [`docs/senior-engine/architecture-v2.md`](docs/senior-engine/architecture-v2.md): senior engine architecture.
 - [`docs/senior-engine/foundation-hardening.md`](docs/senior-engine/foundation-hardening.md): foundation contracts and implemented boundaries.
 - [`docs/senior-engine/roadmap.md`](docs/senior-engine/roadmap.md): completed senior roadmap context.
+- [`CHANGELOG.md`](CHANGELOG.md): public release notes and known limits.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): contribution workflow.
 - [`SECURITY.md`](SECURITY.md): security expectations and reporting guidance.
 
 ## Status And Release Readiness
 
-The senior roadmap is complete for the current local CLI engine. The repository includes usage, release and maintenance documentation, local quality gates and CI checks for import smoke tests, CLI smoke tests, whitespace hygiene, sensitive/generated file guards and the pytest suite.
+`v1.0.0` is the stable local CLI baseline. The senior roadmap is complete for the current local CLI engine. The repository includes usage, release and maintenance documentation, local quality gates and CI checks for import smoke tests, CLI smoke tests, whitespace hygiene, sensitive/generated file guards and the pytest suite.
 
 The current project state is suitable as a portfolio-grade, public-facing SEO/GEO engine foundation. Future API, SaaS, dashboard or managed-service layers are outside this README's scope.
 

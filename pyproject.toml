@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "geo-seo-engine"
-version = "0.1.0"
+version = "1.0.0"
 description = "Operational SEO and GEO engine for SaaS and content systems."
 readme = "README.md"
 requires-python = ">=3.12"

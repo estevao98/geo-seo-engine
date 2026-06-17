@@ -55,7 +55,7 @@ def audit_robots(url: str, timeout: float = 15.0) -> RobotsAuditResult:
             follow_redirects=True,
             timeout=timeout,
             headers={
-                "User-Agent": "geo-seo-engine/0.1.0 (+https://example.com)"
+                "User-Agent": "geo-seo-engine/1.0.0 (+https://example.com)"
             },
         )
     except httpx.HTTPError as exc:

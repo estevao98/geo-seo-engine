@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
-DEFAULT_USER_AGENT = "geo-seo-engine/0.1.0 (+https://example.com)"
+DEFAULT_USER_AGENT = "geo-seo-engine/1.0.0 (+https://example.com)"
 
 
 class ConfigBaseModel(BaseModel):

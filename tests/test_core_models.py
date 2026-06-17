@@ -67,7 +67,7 @@ def test_audit_run_serializes_with_issues():
     run = AuditRun(
         id="run-1",
         started_at=datetime(2026, 1, 1, tzinfo=UTC),
-        tool_version="0.1.0",
+        tool_version="1.0.0",
         target=UrlIdentity(
             raw_url="https://example.com/",
             normalized_url="https://example.com/",

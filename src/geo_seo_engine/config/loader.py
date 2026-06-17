@@ -28,7 +28,7 @@ output_dir: reports
 http:
   timeout_seconds: 10
   follow_redirects: true
-  user_agent: geo-seo-engine/0.1.0 (+https://example.com)
+  user_agent: geo-seo-engine/1.0.0 (+https://example.com)
   retries: 1
   max_response_bytes: 2000000
   block_private_hosts: false

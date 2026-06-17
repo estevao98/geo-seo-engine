@@ -1,16 +1,25 @@
 import json
+import tomllib
+from pathlib import Path
 
 from typer.testing import CliRunner
 
+import geo_seo_engine
 from geo_seo_engine.cli import app
 
+ROOT = Path(__file__).resolve().parents[1]
 runner = CliRunner()
 
 
 def test_version_command():
     result = runner.invoke(app, ["version"])
     assert result.exit_code == 0
-    assert "0.1.0" in result.stdout
+    assert result.stdout.strip() == "1.0.0"
+
+
+def test_package_version_metadata_is_consistent():
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    assert pyproject["project"]["version"] == geo_seo_engine.__version__ == "1.0.0"
 
 
 def test_audit_page_json_output(monkeypatch):

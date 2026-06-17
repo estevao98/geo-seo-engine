@@ -52,7 +52,7 @@ def audit_sitemap(url: str, timeout: float = 20.0) -> SitemapAuditResult:
             follow_redirects=True,
             timeout=timeout,
             headers={
-                "User-Agent": "geo-seo-engine/0.1.0 (+https://example.com)"
+                "User-Agent": "geo-seo-engine/1.0.0 (+https://example.com)"
             },
         )
     except httpx.HTTPError as exc:
