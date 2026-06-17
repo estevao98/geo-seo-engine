@@ -1,186 +1,124 @@
 # geo-seo-engine
 
-CLI operacional para auditorias iniciais de SEO técnico e GEO em páginas, robots.txt, sitemaps e sites públicos.
+`geo-seo-engine` is a local-first SEO + GEO command-line engine for auditing, planning and reporting organic growth work with deterministic, reviewable outputs.
 
-## O que a ferramenta faz hoje
+It is built for technical SEO workflows, SaaS/content teams, consultants, maintainers and contributors who need clear diagnostics, evidence, risks, priorities and next actions without depending on private dashboards or opaque SaaS state.
 
-O MVP atual entrega uma CLI chamada `geo` com estes comandos:
+## What It Solves
 
-- `geo version`: mostra a versão instalada.
-- `geo init`: cria um `geo-seo.yml` seguro para configurar um projeto.
-- `geo config validate --config geo-seo.yml`: valida a configuração YAML do projeto.
-- `geo audit-page <url>`: audita uma página HTML pública.
-- `geo audit-sitemap <url>`: audita um sitemap XML ou sitemap index.
-- `geo audit-robots <url>`: audita um arquivo robots.txt.
-- `geo audit-site <url>`: executa uma auditoria agregada de página, robots.txt, sitemap e structured data JSON-LD.
+- Turns scattered SEO checks into a reproducible CLI workflow.
+- Audits technical, content, entity, internal linking, image, social, hreflang, rendering and performance signals.
+- Converts local evidence into prioritized opportunities, content briefs, cluster plans, AI-readiness signals and senior reports.
+- Keeps generated artifacts, client data and credentials out of the repository by default.
+- Documents limitations explicitly instead of promising rankings, traffic or AI inclusion.
 
-A auditoria agregada de site também gera:
+## Feature Overview
 
-- score geral do site;
-- issues classificadas por severidade;
-- `next_action` com a ação prioritária;
-- recomendações ordenadas por severidade;
-- auditoria básica de structured data/schema via blocos JSON-LD.
+Current capabilities include:
 
-## Instalação local
+- Project config bootstrap and validation with `geo init` and `geo config validate`.
+- Public URL audits for pages, robots.txt, sitemaps, structured data and aggregated site reports.
+- Bounded internal crawling with host, depth, page and include/exclude controls.
+- URL inventory and technical findings from crawled data.
+- Content extraction and deterministic content-quality checks.
+- Entity-readiness checks for publisher, authorship and topical signals.
+- Internal-link graph, image, social metadata and hreflang audits.
+- Static rendering comparison and local PageSpeed/Lighthouse JSON analysis.
+- Local Search Console export summarization without credentials.
+- Opportunity prioritization, content briefs, content clusters, AI-readiness simulation and senior reporting from local JSON inputs.
 
-Requisitos:
+## Quickstart
 
-- Python 3.12 ou superior.
+Requirements:
 
-Instale em modo editável a partir da raiz do repositório:
+- Python 3.12 or newer.
+- Network access only for commands that fetch public URLs.
+
+Install from the repository root:
 
 ```bash
 python -m pip install -e ".[dev]"
-```
-
-Confirme a instalação:
-
-```bash
 geo version
 ```
 
-Observação: a flag `geo --version` ainda não está disponível no MVP atual; use o subcomando `geo version`.
-
-## Comandos principais
-
-Criar e validar configuração de projeto:
+Create and validate a safe project config:
 
 ```bash
 geo init
 geo config validate --config geo-seo.yml
 ```
 
-Um exemplo versionado e sem segredos está disponível em [`examples/geo-seo.example.yml`](examples/geo-seo.example.yml).
+A versioned, synthetic example is available at [`examples/geo-seo.example.yml`](examples/geo-seo.example.yml). Do not put tokens, credentials, raw exports or private client data in `geo-seo.yml`.
 
-Auditar uma página pública:
+## Example Workflow
 
-```bash
-geo audit-page https://example.com
-```
-
-Auditar um sitemap público:
+Start with a conservative crawl and write generated output outside the repository:
 
 ```bash
-geo audit-sitemap https://www.google.com/sitemap.xml
+geo crawl https://example.com \
+  --max-pages 25 \
+  --max-depth 2 \
+  --allowed-host example.com \
+  --output /tmp/example-crawl.json
 ```
 
-Auditar um robots.txt público:
+Run focused audits:
 
 ```bash
-geo audit-robots https://example.com/robots.txt
+geo audit-site https://example.com --format markdown --output /tmp/example-site-audit.md
+geo inventory https://example.com --format json --output /tmp/example-inventory.json
+geo audit-technical https://example.com --format json --output /tmp/example-technical.json
+geo audit-content-quality https://example.com --format json --output /tmp/example-content-quality.json
+geo audit-entity-readiness https://example.com --format json --output /tmp/example-entity-readiness.json
 ```
 
-Gerar relatório markdown de auditoria agregada de site:
+Then use local JSON inputs to plan and report:
 
 ```bash
-geo audit-site https://example.com --format markdown --output /tmp/site-audit-example.md
+geo opportunity --input /tmp/audits.json --format json --output /tmp/opportunities.json
+geo content-brief --input /tmp/audits.json --format json --output /tmp/content-briefs.json
+geo content-cluster --input /tmp/planning.json --format json --output /tmp/content-clusters.json
+geo ai-readiness --input /tmp/planning.json --format json --output /tmp/ai-readiness.json
+geo senior-report --input /tmp/planning.json --format json --output /tmp/senior-report.json
 ```
 
-Formatos disponíveis hoje:
+The workflow is intentionally evidence-driven:
 
-- `audit-page`: `table` e `json`.
-- `audit-sitemap`: `table` e `json`.
-- `audit-robots`: `table` e `json`.
-- `audit-site`: `table`, `json` e `markdown`.
-
-## Exemplo resumido de saída
-
-Exemplo de campos do relatório gerado por `geo audit-site --format markdown`:
-
-Um relatório Markdown versionado e seguro está disponível em [`examples/site-audit-example.md`](examples/site-audit-example.md). Ele usa o domínio público neutro `https://example.com` e não contém dados privados, tokens ou exports reais.
-
-```markdown
-# Site Audit Report
-
-## Summary
-
-| Field | Value |
-|---|---|
-| URL | `https://example.com` |
-| Score | `75` |
-| Next action | `Corrigir a rota do sitemap ou publicar um sitemap XML válido acessível por HTTP 200.` |
-| Total issues | `3` |
-| Critical issues | `0` |
-| High issues | `1` |
-| Medium issues | `1` |
-| Low issues | `1` |
-
-## Structured Data
-
-| Field | Value |
-|---|---|
-| JSON-LD blocks | `0` |
-| Valid JSON-LD blocks | `0` |
-| Invalid JSON-LD blocks | `0` |
-| Types | `—` |
+```text
+config -> http -> crawler -> inventory -> audits -> opportunities -> planning -> readiness -> senior report
 ```
 
-Os valores variam conforme a URL auditada e as respostas HTTP coletadas no momento da execução.
+## Module Map
 
-## Como interpretar o relatório
+| Area | Modules | Purpose |
+|---|---|---|
+| Setup and policy | `config`, `quality_gates` | Validate project scope and block generated or sensitive tracked files. |
+| Collection | `http`, `crawler`, `inventory` | Fetch public URLs safely, crawl within limits and summarize discovered pages. |
+| Technical SEO | `analyzers`, `technical`, `rendering`, `performance` | Audit pages, robots, sitemaps, structured data, technical inventory, rendering and local performance payloads. |
+| Content and entities | `content`, `content_quality`, `entity_readiness` | Extract main content and inspect deterministic usefulness, coverage, authorship and publisher signals. |
+| Site graph and metadata | `internal_links`, `images`, `social`, `i18n` | Review links, image markup, social metadata and hreflang annotations. |
+| Planning | `opportunities`, `content_briefs`, `content_clusters`, `ai_readiness` | Convert evidence into backlog items, briefs, clusters and generative-search readiness signals. |
+| Reporting | `senior_report`, `reporting`, `cli` | Serialize operational outputs for humans, automation and handoff. |
 
-`score` é a pontuação geral calculada a partir das issues encontradas. A pontuação começa em `100` e subtrai penalidades por severidade: `critical` remove 30 pontos, `high` remove 15, `medium` remove 7 e `low` remove 3. O mínimo exibido é `0`.
+## Why Deterministic And Local-First
 
-`severity` classifica cada issue como `critical`, `high`, `medium` ou `low`. Essa classificação prioriza riscos técnicos como página sem HTTP 200, `noindex`, bloqueios amplos em robots.txt, sitemap inacessível e problemas relevantes de sinais semânticos.
+- CLI commands return inspectable tables, JSON or Markdown.
+- Planning modules operate on provided local inputs instead of hidden remote state.
+- Findings are rule-based and should include evidence, risk, priority and next action.
+- Network access is explicit: URL audits and crawls fetch public resources; local analyzers consume files already supplied by the operator.
+- Generated reports and private exports should be written to `/tmp` or another non-versioned location.
 
-`next_action` é a primeira ação recomendada depois de ordenar as issues por severidade. Quando não há issues, o campo fica sem ação prioritária.
+## Safety And Data Policy
 
-`recommendations` lista a ação sugerida e o motivo para cada issue conhecida. As recomendações são geradas a partir das issues detectadas e também seguem a ordem de severidade.
+Do not commit:
 
-`structured data audit` verifica blocos `<script type="application/ld+json">` na página auditada pelo comando `audit-site`. A auditoria conta blocos JSON-LD, valida sintaxe JSON, extrai valores `@type` e reporta issues como `missing`, `invalid_json_ld` e `missing_type`.
+- `.env` or real environment files.
+- Tokens, service accounts, credentials or database dumps.
+- Raw Search Console, Analytics, scanner or private client exports.
+- Generated reports with private data.
+- `site_config.json`, `terraform.tfstate` or `reports/raw`.
 
-## Status do MVP
-
-Concluído no MVP atual:
-
-- CLI instalável via entrypoint `geo`.
-- Auditoria técnica básica de página HTML pública.
-- Auditoria de robots.txt.
-- Auditoria de sitemap XML e sitemap index.
-- Auditoria agregada de site.
-- Relatório em tabela, JSON e markdown conforme o comando.
-- Score geral do site.
-- Severidade por issue.
-- Próxima ação prioritária.
-- Recomendações ordenadas por severidade.
-- Auditoria básica de structured data JSON-LD.
-
-## Roadmap curto
-
-Próximos incrementos planejados:
-
-- Expandir cobertura de testes e fixtures de auditoria.
-- Melhorar mensagens de erro e validação de entrada da CLI.
-- Adicionar alias `geo --version` para o comando de versão.
-- Ampliar regras de recomendação para novas issues técnicas.
-- Evoluir relatórios sem prometer ganho de ranking, indexação ou presença em respostas de IA.
-
-## Documentacao senior e handoff
-
-A camada senior esta documentada em [`docs/senior-engine/`](docs/senior-engine/). Use estes documentos para operar, validar e manter o projeto:
-
-- [`docs/senior-engine/usage.md`](docs/senior-engine/usage.md): setup local, comandos principais, uso seguro e interpretacao de outputs.
-- [`docs/senior-engine/release-process.md`](docs/senior-engine/release-process.md): checklist de release, gates locais, comportamento do CI e politica de arquivos seguros.
-- [`docs/senior-engine/maintenance.md`](docs/senior-engine/maintenance.md): encaixe dos modulos, troubleshooting e notas de handoff.
-- [`docs/senior-engine/foundation-hardening.md`](docs/senior-engine/foundation-hardening.md): contratos e limites da fundacao ja implementada.
-
-## Avisos de segurança
-
-- Não commitar `.env`.
-- Use `.env.example` apenas com nomes de variáveis e valores vazios ou sintéticos.
-- Não commitar relatórios com dados privados.
-- Não commitar exports brutos de clientes.
-- Não commitar tokens, credenciais, dumps de banco ou arquivos de configuração sensíveis.
-- Antes de publicar ou abrir PR, consulte [`SECURITY.md`](SECURITY.md) e rode a varredura recomendada.
-
-## Validação local e CI
-
-O repositório possui gates locais e em GitHub Actions para manter testes,
-higiene de diff, smoke checks de import/CLI e bloqueio de arquivos gerados ou
-sensíveis alinhados ao fluxo de revisão.
-
-Antes de finalizar uma mudança, rode:
+Before publishing changes, run the local gates and review [`SECURITY.md`](SECURITY.md):
 
 ```bash
 git status --short
@@ -190,16 +128,27 @@ python -m geo_seo_engine.quality_gates
 python -m pytest
 ```
 
-O CI usa Python 3.13, instala o pacote com dependências de desenvolvimento,
-executa smoke checks offline-safe (`import geo_seo_engine` e `geo version`) e
-falha com mensagem objetiva se houver arquivos bloqueados versionados.
+## Documentation
 
-Para uma release ou handoff, siga o checklist completo em [`docs/senior-engine/release-process.md`](docs/senior-engine/release-process.md).
+- [`docs/senior-engine/usage.md`](docs/senior-engine/usage.md): setup, CLI commands, safe operation and output interpretation.
+- [`docs/senior-engine/release-process.md`](docs/senior-engine/release-process.md): release checklist, local gates, CI behavior and safe-file policy.
+- [`docs/senior-engine/maintenance.md`](docs/senior-engine/maintenance.md): module responsibilities, troubleshooting and handoff notes.
+- [`docs/senior-engine/architecture-v2.md`](docs/senior-engine/architecture-v2.md): senior engine architecture.
+- [`docs/senior-engine/foundation-hardening.md`](docs/senior-engine/foundation-hardening.md): foundation contracts and implemented boundaries.
+- [`docs/senior-engine/roadmap.md`](docs/senior-engine/roadmap.md): completed senior roadmap context.
+- [`CONTRIBUTING.md`](CONTRIBUTING.md): contribution workflow.
+- [`SECURITY.md`](SECURITY.md): security expectations and reporting guidance.
 
-## O que este repositório não promete
+## Status And Release Readiness
 
-- Não promete crescimento de tráfego.
-- Não promete indexação garantida.
-- Não promete aparecer em respostas de IA.
-- Não usa black hat SEO.
-- Não cria conteúdo em massa sem validação.
+The senior roadmap is complete for the current local CLI engine. The repository includes usage, release and maintenance documentation, local quality gates and CI checks for import smoke tests, CLI smoke tests, whitespace hygiene, sensitive/generated file guards and the pytest suite.
+
+The current project state is suitable as a portfolio-grade, public-facing SEO/GEO engine foundation. Future API, SaaS, dashboard or managed-service layers are outside this README's scope.
+
+## Non-Promises And Limitations
+
+- Does not promise traffic growth, ranking improvement, indexing, AI citation or inclusion in generative answers.
+- Does not create or recommend black hat SEO, PBNs, cloaking, doorway pages, spam or artificial backlinks.
+- Does not replace expert review; outputs are evidence and heuristics for prioritization.
+- Does not fetch private dashboards or use credentials unless a future integration explicitly documents that behavior.
+- Does not make claims from missing data; absent evidence should be treated as a limitation or hypothesis.

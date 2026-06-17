@@ -55,3 +55,50 @@ def test_release_docs_cover_current_cli_commands_and_gates() -> None:
     assert "Generated and sensitive file guard" in release
     assert "quality_gates" in maintenance
     assert "nao promet" in usage.lower()
+
+
+def test_readme_showcases_senior_engine_without_unsupported_claims() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+    expected_sections = [
+        "## What It Solves",
+        "## Feature Overview",
+        "## Quickstart",
+        "## Example Workflow",
+        "## Module Map",
+        "## Why Deterministic And Local-First",
+        "## Safety And Data Policy",
+        "## Documentation",
+        "## Status And Release Readiness",
+        "## Non-Promises And Limitations",
+    ]
+
+    for section in expected_sections:
+        assert section in readme
+
+    expected_links = [
+        "docs/senior-engine/usage.md",
+        "docs/senior-engine/release-process.md",
+        "docs/senior-engine/maintenance.md",
+        "SECURITY.md",
+    ]
+
+    for link in expected_links:
+        assert link in readme
+
+    safe_commands = [
+        'python -m pip install -e ".[dev]"',
+        "geo version",
+        "geo init",
+        "geo config validate --config geo-seo.yml",
+        "git diff --check",
+        "python -m geo_seo_engine.quality_gates",
+        "python -m pytest",
+    ]
+
+    for command in safe_commands:
+        assert command in readme
+
+    assert "/tmp/" in readme
+    assert "Does not promise traffic growth" in readme
+    assert "Does not create or recommend black hat SEO" in readme
